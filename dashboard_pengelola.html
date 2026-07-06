@@ -161,7 +161,7 @@
           <app-crud-manager sheet-name="Jabatan" sheet-label="Jabatan Pegawai" :schema="schemaJabatan" :data-list="dbJabatan" @refresh="reloadAll"></app-crud-manager>
         </div>
         <div class="page-section" :class="{ active: activePage === 'data-pegawai' }">
-          <app-crud-manager sheet-name="Pegawai" sheet-label="Pegawai" :schema="schemaPegawai" :data-list="dbPegawai" @refresh="reloadAll"></app-crud-manager>
+          <app-crud-manager sheet-name="Pegawai" sheet-label="Pegawai" :schema="schemaPegawai" :data-list="dbPegawaiNonAdmin" @refresh="reloadAll"></app-crud-manager>
         </div>
         
         <!-- SESSION-BASED PRESENSI PEGAWAI CRUD -->
@@ -455,6 +455,9 @@
         const dbPengumuman = ref([]);
         const dbJabatan = ref([]);
         const dbPegawai = ref([]);
+        const dbPegawaiNonAdmin = computed(() => {
+          return dbPegawai.value.filter(p => p.jabatan_id !== 'JAB-001');
+        });
         const dbPresensiPegawai = ref([]);
         const dbKonfigurasiAkademik = ref([]);
         const dbMapel = ref([]);
@@ -814,8 +817,8 @@
           stats[0].value = dbSiswa.value.length.toLocaleString('id-ID');
           stats[0].sub = `Total siswa terdaftar`;
 
-          // 2. Total Tentor count
-          stats[1].value = dbPegawai.value.length.toLocaleString('id-ID');
+          // 2. Total Tentor/Staf count (excluding admin/pengelola)
+          stats[1].value = dbPegawaiNonAdmin.value.length.toLocaleString('id-ID');
           stats[1].sub = `Staf & Guru Bimbel`;
 
           // 3. Keuangan
@@ -1197,6 +1200,7 @@
           dbPengumuman,
           dbJabatan,
           dbPegawai,
+          dbPegawaiNonAdmin,
           dbPresensiPegawai,
           dbPresensiSiswa,
           dbKonfigurasiAkademik,

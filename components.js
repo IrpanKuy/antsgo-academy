@@ -154,7 +154,7 @@ window.HeaderComponent = {
           </button>
           
           <!-- Dropdown Menu Box -->
-          <div v-if="isDropdownOpen" class="user-dropdown-menu" style="position: absolute; right: 0; top: 42px; background: white; border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); width: 220px; z-index: 10000; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div v-if="isDropdownOpen" class="user-dropdown-menu" style="position: absolute; right: 0; top: 42px; background: white; border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); width: 220px; z-index: 999; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
             <!-- Profile Info Display -->
             <div style="display: flex; gap: 10px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); margin-bottom: 4px;">
               <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
@@ -608,7 +608,7 @@ window.CrudManagerComponent = {
       </div>
 
       <!-- CREATE / EDIT MODAL DIALOG -->
-      <div v-if="isModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+      <div v-if="isModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 950; padding: 20px;">
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 15px 30px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
           <!-- Modal Header -->
           <div style="padding: 20px 24px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
@@ -682,7 +682,7 @@ window.CrudManagerComponent = {
       </div>
 
       <!-- ACCOUNT SETTINGS MODAL (for Siswa/Pegawai only) -->
-      <div v-if="isAccountModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;">
+      <div v-if="isAccountModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 950; padding: 20px;">
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 15px 30px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
           <!-- Modal Header -->
           <div style="padding: 20px 24px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">

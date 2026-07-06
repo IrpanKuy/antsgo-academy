@@ -4,7 +4,7 @@
 
 // URL Web App Google Apps Script hasil Deploy (Production).
 // Silakan masukkan URL Web App GAS Anda di sini.
-window.GAS_URL = "https://script.google.com/macros/s/AKfycbyK9vVkmVaBLS0SKE7HBj_LXnYEUqJCFfO6SNtcgSf8TJhElpe0I51xEwV_MaDmFeL6kw/exec";
+window.GAS_URL = "https://script.google.com/macros/s/AKfycbz_5ayvcZOw5xntHwvSH37vIonbriHccysH0bqqaWyYf22ImRzI0k3VS9zx9tn8rsGBxg/exec";
 
 // Skema Kolom Database Relasional (15 Tabel)
 window.SCHEMAS = {

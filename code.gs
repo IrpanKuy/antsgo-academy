@@ -158,9 +158,11 @@ function doPost(e) {
       var usernameVal = payload.username;
       var passwordVal = payload.password;
       
-      // Hapus virtual fields agar tidak ikut masuk ke sheet utama
-      delete payload.username;
-      delete payload.password;
+      // Hapus virtual fields agar tidak ikut masuk ke sheet utama jika ini Siswa atau Pegawai
+      if (sheetName === "Siswa" || sheetName === "Pegawai") {
+        delete payload.username;
+        delete payload.password;
+      }
       
       var newRecord = insertTableRow(sheetName, payload);
       
@@ -197,9 +199,11 @@ function doPost(e) {
       var usernameVal = payload.username;
       var passwordVal = payload.password;
       
-      // Hapus virtual fields agar tidak ikut masuk ke sheet utama
-      delete payload.username;
-      delete payload.password;
+      // Hapus virtual fields agar tidak ikut masuk ke sheet utama jika ini Siswa atau Pegawai
+      if (sheetName === "Siswa" || sheetName === "Pegawai") {
+        delete payload.username;
+        delete payload.password;
+      }
       
       updateTableRow(sheetName, idCol, idVal, payload);
       
@@ -441,10 +445,12 @@ function seedDefaultData(db) {
   // 3. Seed Users
   var sheetUsr = db.getSheetByName("Users");
   if (sheetUsr.getDataRange().getValues().length <= 1) {
-    sheetUsr.getRange(2, 1, 3, 7).setValues([
-      ["USR-001", "admin", hashSHA256("admin123"), "pengelola", "Budi Santoso", "PGW-002", "Aktif"],
-      ["USR-002", "tentor1", hashSHA256("tentor123"), "tentor", "Fahmi Hidayat", "PGW-001", "Aktif"],
-      ["USR-003", "parent1", hashSHA256("parent123"), "parent", "Irfan Hakim", "SSW-001", "Aktif"]
+    sheetUsr.getRange(2, 1, 5, 7).setValues([
+      ["USR-001", "admin", hashSHA256("password123"), "pengelola", "Budi Santoso", "PGW-002", "Aktif"],
+      ["USR-002", "tentor1", hashSHA256("password123"), "tentor", "Fahmi Hidayat", "PGW-001", "Aktif"],
+      ["USR-003", "parent1", hashSHA256("password123"), "parent", "Irfan Hakim", "SSW-001", "Aktif"],
+      ["USR-004", "tentor2", hashSHA256("password123"), "tentor", "Siti Rahma", "PGW-003", "Aktif"],
+      ["USR-005", "parent2", hashSHA256("password123"), "parent", "Hendrawan", "SSW-002", "Aktif"]
     ]);
   }
 
