@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Pengelola - AntsGo Academy</title>
+  
+  <!-- Font Outfit & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Shared Style Sheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Shared Client-Side Database & GAS CONFIG -->
+  <script src="data.js"></script>
+
+  <!-- Chart.js & Vue.js 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  
+  <!-- Shared Vue Components -->
+  <script src="components.js"></script>
+</head>
+<body>
+
+  <div id="app" class="app-container">
+    
+    <!-- Shared Sidebar Navigation Component -->
+    <app-sidebar
+      ref="sidebarRef"
+      :active-page="activePage"
+      :sidebar-menu="sidebarMenu"
+      role-text="Pengelola"
+      avatar-initials="BS"
+      @navigate="handleNavigate"
+      @logout="handleLogout"
+    ></app-sidebar>
+
+    <!-- MAIN CONTENT WRAPPER -->
+    <main class="main-wrapper">
+      
+      <!-- Shared Header Nav Component -->
+      <app-header
+        :page-title="pageTitle"
+        :system-date-string="systemDateString"
+        :user-name="userName"
+        role-text="Super Admin"
+        avatar-initials="BS"
+        @toggle-sidebar="openSidebar"
+        @navigate-settings="navigateTo('pengaturan', 'Pengaturan')"
+        @logout="handleLogout"
+      ></app-header>
+
+      <!-- Content Body -->
+      <section class="content-body">
+        
+        <!-- ========================================== -->
+        <!-- 1. DASHBOARD OVERVIEW SECTION -->
+        <!-- ========================================== -->
+        <div class="page-section" :class="{ active: activePage === 'dashboard' }">
+          
+          <!-- KPI Statistics Cards -->
+          <div class="stats-grid">
+            <div v-for="(card, index) in stats" :key="index" class="stat-card" :class="card.colorClass">
+              <div class="stat-details">
+                <span class="stat-title">{{ card.title }}</span>
+                <span class="stat-value">{{ card.value }}</span>
+                <span class="stat-trend" :class="card.trend">
+                  <i class="fa-solid fa-arrow-trend-up" v-if="card.trend === 'up'"></i>
+                  <i class="fa-solid fa-arrow-trend-down" v-if="card.trend === 'down'"></i>
+                  {{ card.sub }}
+                </span>
+              </div>
+              <div class="stat-icon-wrapper">
+                <i class="fa-solid" :class="card.icon"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="dashboard-row">
+            <div class="content-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-chart-column"></i>
+                    Tren Keuangan Bulanan
+                  </h3>
+                  <p class="card-subtitle">Kas Masuk vs Kas Keluar (Januari - Juni 2026)</p>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="mainDashboardChart"></canvas>
+              </div>
+            </div>
+
+            <div class="content-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-square-poll-vertical"></i>
+                    Rata-rata Kehadiran Siswa
+                  </h3>
+                  <p class="card-subtitle">Persentase rekapitulasi kehadiran seluruh siswa</p>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="secondaryDashboardChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Panel: Announcements -->
+          <div class="dashboard-row" style="grid-template-columns: 1fr;">
+            <!-- Announcements -->
+            <div class="content-card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-bullhorn"></i>
+                  Pengumuman Terbaru
+                </h3>
+                <span class="placeholder-badge">Untuk Pengelola</span>
+              </div>
+              <div class="announcement-list">
+                <div v-for="(ann, idx) in announcements" :key="idx" class="announcement-item" :class="ann.type">
+                  <div class="announce-meta">
+                    <span class="placeholder-badge" style="padding: 1px 6px; font-size: 10px;">Info</span>
+                    <span>{{ ann.time }}</span>
+                  </div>
+                  <h4 class="announce-title">{{ ann.title }}</h4>
+                  <p class="announce-desc">{{ ann.desc }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 2. GENERIC CRUD SHEET SECTIONS -->
+        <!-- ========================================== -->
+        <!-- KESISWAAN -->
+        <div class="page-section" :class="{ active: activePage === 'kelompok-belajar' }">
+          <app-crud-manager sheet-name="KelompokBelajar" sheet-label="Kelompok Belajar" :schema="schemaKelompok" :data-list="dbKelompok" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'data-siswa' }">
+          <app-crud-manager sheet-name="Siswa" sheet-label="Siswa" :schema="schemaSiswa" :data-list="dbSiswa" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'kirim-pengumuman' }">
+          <app-crud-manager sheet-name="Pengumuman" sheet-label="Pengumuman" :schema="schemaPengumuman" :data-list="dbPengumuman" @refresh="reloadAll"></app-crud-manager>
+        </div>
+
+        <!-- KEPEGAWAIAN -->
+        <div class="page-section" :class="{ active: activePage === 'jabatan-pegawai' }">
+          <app-crud-manager sheet-name="Jabatan" sheet-label="Jabatan Pegawai" :schema="schemaJabatan" :data-list="dbJabatan" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'data-pegawai' }">
+          <app-crud-manager sheet-name="Pegawai" sheet-label="Pegawai" :schema="schemaPegawai" :data-list="dbPegawai" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        
+        <!-- SESSION-BASED PRESENSI PEGAWAI CRUD -->
+        <div class="page-section" :class="{ active: activePage === 'presensi-pegawai-crud' }">
+          <app-crud-manager sheet-name="PresensiPegawai" sheet-label="Presensi Pegawai" :schema="schemaPresensiPegawai" :data-list="dbPresensiPegawai" @refresh="reloadAll"></app-crud-manager>
+        </div>
+
+        <!-- CUSTOM MONTHLY ATTENDANCE SUMMARY REPORT -->
+        <div class="page-section" :class="{ active: activePage === 'laporan-absensi-bulanan' }">
+          <div class="content-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-calendar-check"></i> Laporan Rekapitulasi Absensi Bulanan Pegawai</h3>
+                <p class="card-subtitle">Akumulasi total kehadiran hadir, izin, sakit, dan alpa pegawai dalam satu bulan terpilih.</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 13.5px; font-weight: 600;">Pilih Bulan:</label>
+                <input type="month" v-model="reportMonth" class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white; cursor: pointer;" />
+              </div>
+            </div>
+
+            <!-- Summary Table View -->
+            <div class="table-responsive-wrapper">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 750px;">
+                <thead>
+                  <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
+                    <th style="padding: 12px 16px; font-weight: 600; width: 140px;">ID Pegawai</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Nama Pegawai</th>
+                    <th style="padding: 12px 16px; font-weight: 600; text-align: center; color: var(--color-emerald); width: 110px;">Hadir</th>
+                    <th style="padding: 12px 16px; font-weight: 600; text-align: center; color: var(--color-amber); width: 110px;">Izin</th>
+                    <th style="padding: 12px 16px; font-weight: 600; text-align: center; color: var(--color-blue); width: 110px;">Sakit</th>
+                    <th style="padding: 12px 16px; font-weight: 600; text-align: center; color: var(--color-rose); width: 110px;">Alpa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="monthlyReportData.length === 0">
+                    <td colspan="6" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                      <i class="fa-solid fa-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
+                      Tidak ada data absensi pegawai untuk bulan ini.
+                    </td>
+                  </tr>
+                  <tr v-for="item in monthlyReportData" :key="item.pegawai_id">
+                    <td style="padding: 12px 16px;">{{ item.pegawai_id }}</td>
+                    <td style="padding: 12px 16px; font-weight: 600;">{{ item.nama }}</td>
+                    <td style="padding: 12px 16px; text-align: center; font-weight: 700; color: var(--color-emerald);">{{ item.hadir }} Hari</td>
+                    <td style="padding: 12px 16px; text-align: center; font-weight: 700; color: var(--color-amber);">{{ item.izin }} Hari</td>
+                    <td style="padding: 12px 16px; text-align: center; font-weight: 700; color: var(--color-blue);">{{ item.sakit }} Hari</td>
+                    <td style="padding: 12px 16px; text-align: center; font-weight: 700; color: var(--color-rose);">{{ item.alpa }} Hari</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AKADEMIK -->
+        <div class="page-section" :class="{ active: activePage === 'tahun-ajaran' }">
+          <app-crud-manager sheet-name="KonfigurasiAkademik" sheet-label="Tahun Ajaran & Program" :schema="schemaKonfigurasiAkademik" :data-list="dbKonfigurasiAkademik" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'mata-pelajaran' }">
+          <app-crud-manager sheet-name="Mapel" sheet-label="Mata Pelajaran" :schema="schemaMapel" :data-list="dbMapel" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'jadwal-mengajar' }">
+          <app-crud-manager sheet-name="Jadwal" sheet-label="Jadwal Mengajar" :schema="schemaJadwal" :data-list="dbJadwal" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'presensi-jurnal' }">
+          <app-crud-manager sheet-name="JurnalMengajar" sheet-label="Jurnal Mengajar" :schema="schemaJurnalMengajar" :data-list="dbJurnalMengajar" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'reschedule-jadwal' }">
+          <app-crud-manager sheet-name="RescheduleJadwal" sheet-label="Reschedule Jadwal" :schema="schemaRescheduleJadwal" :data-list="dbRescheduleJadwal" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'presensi-siswa-crud' }">
+          <app-crud-manager sheet-name="PresensiSiswa" sheet-label="Presensi Siswa" :schema="schemaPresensiSiswa" :data-list="dbPresensiSiswa" @refresh="reloadAll"></app-crud-manager>
+        </div>
+
+        <!-- KEUANGAN -->
+        <div class="page-section" :class="{ active: activePage === 'setting-pos-bayar' }">
+          <app-crud-manager sheet-name="PosBayar" sheet-label="Setting & Pos Bayar" :schema="schemaPosBayar" :data-list="dbPosBayar" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'transaksi-pembayaran' }">
+          <app-crud-manager sheet-name="KeuanganTrans" sheet-label="Transaksi Pembayaran" :schema="schemaKeuanganTrans" :data-list="dbKeuanganTrans" @refresh="reloadAll"></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'penggajian-slip' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-calculator"></i> Ikhtisar Penggajian Tentor</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Berikut adalah rekapitulasi gaji sesi tentor yang dihitung berdasarkan presensi hadir mengajar pegawai.</p>
+            <div class="table-responsive-wrapper">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 600px;">
+                <thead>
+                  <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
+                    <th style="padding: 12px 16px; font-weight: 600;">ID Pegawai</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Nama Tentor</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Gaji Per Sesi</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Sesi Hadir Mengajar</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Estimasi Total Gaji</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in dbGajiPegawai" :key="item.pegawai_id">
+                    <td style="padding: 12px 16px;">{{ item.pegawai_id }}</td>
+                    <td style="padding: 12px 16px; font-weight: 600;">{{ item.nama }}</td>
+                    <td style="padding: 12px 16px;">Rp {{ item.gajiPerSesi.toLocaleString('id-ID') }}</td>
+                    <td style="padding: 12px 16px;">{{ item.sesiHadir }} Sesi</td>
+                    <td style="padding: 12px 16px; font-weight: 700; color: var(--color-teal);">Rp {{ item.totalGaji.toLocaleString('id-ID') }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'kas-bank' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-building-columns"></i> Neraca Kas & Bank</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Ringkasan perputaran dana tunai (Kas) dan non-tunai (Bank) pada AntsGo Academy.</p>
+            <div class="stats-grid" style="margin-bottom: 24px;">
+              <div class="stat-card blue-theme">
+                <div class="stat-details">
+                  <span class="stat-title">Kas Tunai</span>
+                  <span class="stat-value">Rp {{ totalKasTunai.toLocaleString('id-ID') }}</span>
+                  <span class="stat-trend neutral">Transaksi tunai</span>
+                </div>
+                <div class="stat-icon-wrapper"><i class="fa-solid fa-money-bill-wave"></i></div>
+              </div>
+              <div class="stat-card teal-theme">
+                <div class="stat-details">
+                  <span class="stat-title">Kas Bank</span>
+                  <span class="stat-value">Rp {{ totalKasBank.toLocaleString('id-ID') }}</span>
+                  <span class="stat-trend neutral">Saldo bank transfer</span>
+                </div>
+                <div class="stat-icon-wrapper"><i class="fa-solid fa-credit-card"></i></div>
+              </div>
+              <div class="stat-card emerald-theme">
+                <div class="stat-details">
+                  <span class="stat-title">Total Saldo Bersih</span>
+                  <span class="stat-value">Rp {{ (totalKasTunai + totalKasBank).toLocaleString('id-ID') }}</span>
+                  <span class="stat-trend positive">Kondisi Keuangan Sehat</span>
+                </div>
+                <div class="stat-icon-wrapper"><i class="fa-solid fa-wallet"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 3. CONSOLIDATED LAPORAN VIEW -->
+        <!-- ========================================== -->
+        <div class="page-section" :class="{ active: activePage === 'laporan' }">
+          <div class="content-card" style="margin-bottom: 24px;">
+            <h3 class="card-title"><i class="fa-solid fa-clipboard-list"></i> Ikhtisar Laporan antsGo Academy</h3>
+            <p class="card-subtitle" style="margin-bottom: 20px;">Laporan keuangan terpadu dan tingkat rekapitulasi kehadiran belajar siswa.</p>
+            
+            <div class="stats-grid">
+              <div class="stat-card emerald-theme">
+                <div class="stat-details">
+                  <span class="stat-title">Total Pemasukan</span>
+                  <span class="stat-value">Rp {{ totalIncomeNum.toLocaleString('id-ID') }}</span>
+                </div>
+              </div>
+              <div class="stat-card rose-theme">
+                <div class="stat-details">
+                  <span class="stat-title">Total Pengeluaran</span>
+                  <span class="stat-value">Rp {{ totalExpenseNum.toLocaleString('id-ID') }}</span>
+                </div>
+              </div>
+              <div class="stat-card blue-theme">
+                <div class="stat-details">
+                  <span class="stat-title">Saldo Bersih</span>
+                  <span class="stat-value">Rp {{ (totalIncomeNum - totalExpenseNum).toLocaleString('id-ID') }}</span>
+                </div>
+              </div>
+              <div class="stat-card teal-theme">
+                <div class="stat-details">
+                  <span class="stat-title">Rata Kehadiran Siswa</span>
+                  <span class="stat-value">{{ avgAttendanceString }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-row">
+            <div class="content-card">
+              <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-chart-column"></i> Perbandingan Kas Pemasukan vs Pengeluaran</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="laporanKeuanganChart"></canvas>
+              </div>
+            </div>
+
+            <div class="content-card">
+              <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-chart-pie"></i> Rekapitulasi Presensi Belajar Siswa</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="laporanPresensiChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 4. PENGATURAN (CHANGE CREDENTIALS) -->
+        <!-- ========================================== -->
+        <div class="page-section" :class="{ active: activePage === 'pengaturan' }">
+          <div class="content-card" style="max-width: 500px; margin: 0 auto;">
+            <div class="card-header" style="margin-bottom: 20px;">
+              <h3 class="card-title"><i class="fa-solid fa-key"></i> Ubah Username & Password Akun</h3>
+            </div>
+            
+            <form @submit.prevent="handleChangeCredentials">
+              <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Username Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="text" v-model="settingsForm.username" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Password Lama <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.oldPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Password Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.newPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Konfirmasi Password Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.confirmPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+              </div>
+
+              <button type="submit" class="btn-flat" style="width: 100%; justify-content: center; height: 40px;" :disabled="isSettingsSaving">
+                <span v-if="isSettingsSaving">Menyimpan Perubahan... <i class="fa-solid fa-spinner fa-spin"></i></span>
+                <span v-else><i class="fa-solid fa-save"></i> Simpan Perubahan</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, computed, onMounted, nextTick } = Vue;
+
+    createApp({
+      components: {
+        'app-sidebar': window.SidebarComponent,
+        'app-header': window.HeaderComponent,
+        'app-placeholder': window.PlaceholderComponent,
+        'app-crud-manager': window.CrudManagerComponent
+      },
+      setup() {
+        const sidebarRef = ref(null);
+        const userName = ref('Budi Santoso');
+        const userAccountId = ref('USR-001');
+        const activePage = ref('dashboard');
+        const activePageLabel = ref('Dashboard');
+        const activeParentLabel = ref('');
+        const systemDateString = ref('');
+
+        // Custom Laporan Absensi Bulanan State
+        const reportMonth = ref(new Date().toLocaleDateString('sv-SE').substring(0, 7));
+
+        // Connection state
+        const gasUrlVal = computed(() => window.GAS_URL || '');
+        const serverStatusColor = computed(() => {
+          return (window.GAS_URL && window.GAS_URL.trim() !== "" && window.GAS_URL !== "https://script.google.com/macros/s/AKfycbzV2ad7FDnLdtYrmALGaOeEhBXPtdNwMrzQR4lRNhIKadyN6lmgaR_5_CEJUX3m1JsPWA/exec") ? '#10b981' : '#f59e0b';
+        });
+        const serverStatusText = computed(() => {
+          return (window.GAS_URL && window.GAS_URL.trim() !== "" && window.GAS_URL !== "https://script.google.com/macros/s/AKfycbzV2ad7FDnLdtYrmALGaOeEhBXPtdNwMrzQR4lRNhIKadyN6lmgaR_5_CEJUX3m1JsPWA/exec") ? 'Online (GAS API)' : 'Koneksi Default / Standalone';
+        });
+        const connectionText = computed(() => {
+          if (window.GAS_URL && window.GAS_URL.trim() !== "" && window.GAS_URL !== "https://script.google.com/macros/s/AKfycbzV2ad7FDnLdtYrmALGaOeEhBXPtdNwMrzQR4lRNhIKadyN6lmgaR_5_CEJUX3m1JsPWA/exec") {
+            return window.GAS_URL.substring(0, 25) + '...';
+          }
+          return 'GAS Web App Terhubung';
+        });
+
+        // Charts instances
+        let mainChart = null;
+        let secondaryChart = null;
+        let reportsKeuanganChart = null;
+        let reportsPresensiChart = null;
+
+        // Reactive database cache models
+        const dbKelompok = ref([]);
+        const dbSiswa = ref([]);
+        const dbPengumuman = ref([]);
+        const dbJabatan = ref([]);
+        const dbPegawai = ref([]);
+        const dbPresensiPegawai = ref([]);
+        const dbKonfigurasiAkademik = ref([]);
+        const dbMapel = ref([]);
+        const dbJadwal = ref([]);
+        const dbJurnalMengajar = ref([]);
+        const dbRescheduleJadwal = ref([]);
+        const dbPosBayar = ref([]);
+        const dbKeuanganTrans = ref([]);
+        const dbPresensiSiswa = ref([]);
+        const dbUsers = ref([]);
+
+        // Settings change form model
+        const settingsForm = reactive({
+          username: '',
+          oldPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        const isSettingsSaving = ref(false);
+
+        // Sidebar navigation list
+        const sidebarMenu = [
+          { label: 'Dashboard', id: 'dashboard', icon: 'fa-chart-pie', type: 'single' },
+          {
+            label: 'Kesiswaan',
+            id: 'kesiswaan',
+            icon: 'fa-user-group',
+            type: 'parent',
+            children: [
+              { label: 'Kelompok Belajar', id: 'kelompok-belajar' },
+              { label: 'Data Siswa', id: 'data-siswa' },
+              { label: 'Kirim Pengumuman', id: 'kirim-pengumuman' }
+            ]
+          },
+          {
+            label: 'Kepegawaian',
+            id: 'kepegawaian',
+            icon: 'fa-briefcase',
+            type: 'parent',
+            children: [
+              { label: 'Jabatan Pegawai', id: 'jabatan-pegawai' },
+              { label: 'Data Pegawai', id: 'data-pegawai' },
+              { label: 'Presensi Pegawai (CRUD)', id: 'presensi-pegawai-crud' },
+              { label: 'Laporan Absensi Bulanan', id: 'laporan-absensi-bulanan' }
+            ]
+          },
+          {
+            label: 'Akademik',
+            id: 'akademik',
+            icon: 'fa-school',
+            type: 'parent',
+            children: [
+              { label: 'Tahun Ajaran & Program', id: 'tahun-ajaran' },
+              { label: 'Mata Pelajaran', id: 'mata-pelajaran' },
+              { label: 'Jadwal Mengajar', id: 'jadwal-mengajar' },
+              { label: 'Presensi Siswa (CRUD)', id: 'presensi-siswa-crud' },
+              { label: 'Presensi Harian & Jurnal', id: 'presensi-jurnal' },
+              { label: 'Reschedule Jadwal', id: 'reschedule-jadwal' }
+            ]
+          },
+          {
+            label: 'Keuangan',
+            id: 'keuangan',
+            icon: 'fa-wallet',
+            type: 'parent',
+            children: [
+              { label: 'Setting & Pos Bayar', id: 'setting-pos-bayar' },
+              { label: 'Transaksi Pembayaran', id: 'transaksi-pembayaran' },
+              { label: 'Penggajian & Slip Gaji', id: 'penggajian-slip' },
+              { label: 'Kas & Bank', id: 'kas-bank' }
+            ]
+          },
+          { label: 'Laporan', id: 'laporan', icon: 'fa-clipboard-list', type: 'single' }
+        ];
+
+        // KPI statistics
+        const stats = reactive([
+          { title: 'Siswa Aktif', value: '0', sub: 'Memuat...', trend: 'neutral', icon: 'fa-users', colorClass: 'blue-theme' },
+          { title: 'Total Tentor', value: '0', sub: 'Memuat...', trend: 'neutral', icon: 'fa-chalkboard-user', colorClass: 'emerald-theme' },
+          { title: 'Pendapatan', value: 'Rp 0', sub: 'Memuat...', trend: 'neutral', icon: 'fa-circle-dollar-to-slot', colorClass: 'teal-theme' },
+          { title: 'Pengeluaran', value: 'Rp 0', sub: 'Memuat...', trend: 'neutral', icon: 'fa-money-bill-transfer', colorClass: 'rose-theme' }
+        ]);
+
+        const announcements = ref([
+          { title: 'Koneksi Database Aktif', desc: 'Menghubungkan ke server Google Sheets...', time: 'Sistem', type: 'success' }
+        ]);
+
+        // Option maps computed for selects
+        const listKelompokOptions = computed(() => {
+          return dbKelompok.value.map(k => ({ value: k.kelompok_id, label: k.nama_kelompok }));
+        });
+        const listJabatanOptions = computed(() => {
+          return dbJabatan.value.map(j => ({ value: j.jabatan_id, label: j.nama_jabatan }));
+        });
+        const listPegawaiOptions = computed(() => {
+          return dbPegawai.value.map(p => ({ value: p.pegawai_id, label: p.nama }));
+        });
+        const listTentorOptions = computed(() => {
+          return dbPegawai.value.filter(p => p.jabatan_id === 'JAB-002' || p.nama.includes('Tentor') || p.nama.includes('M.Pd') || p.nama.includes('S.Pd')).map(p => ({ value: p.pegawai_id, label: p.nama }));
+        });
+        const listMapelOptions = computed(() => {
+          return dbMapel.value.map(m => ({ value: m.mapel_id, label: m.nama_mapel }));
+        });
+        const listSiswaOptions = computed(() => {
+          return dbSiswa.value.map(s => ({ value: s.siswa_id, label: s.nama }));
+        });
+        const listPosBayarOptions = computed(() => {
+          return dbPosBayar.value.map(p => ({ value: p.pos_bayar_id, label: `${p.nama_pos} - Rp ${parseFloat(p.nominal_tarif).toLocaleString('id-ID')}` }));
+        });
+        const listJadwalOptions = computed(() => {
+          return dbJadwal.value.map(j => {
+            const klm = dbKelompok.value.find(k => k.kelompok_id === j.kelompok_id)?.nama_kelompok || j.kelompok_id;
+            const mpl = dbMapel.value.find(m => m.mapel_id === j.mapel_id)?.nama_mapel || j.mapel_id;
+            return { value: j.jadwal_id, label: `${klm} - ${mpl} (${j.hari}, ${j.jam_mulai}-${j.jam_selesai})` };
+          });
+        });
+
+        // ----------------- CRUD SCHEMAS DEFINITION -----------------
+        const schemaKelompok = [
+          { name: 'kelompok_id', label: 'ID Kelompok', type: 'text' },
+          { name: 'nama_kelompok', label: 'Nama Kelompok', type: 'text', required: true },
+          { name: 'tingkat', label: 'Tingkat', type: 'select', required: true, options: [{value:'SD',label:'SD'},{value:'SMP',label:'SMP'},{value:'SMA',label:'SMA'}] },
+          { name: 'keterangan', label: 'Keterangan', type: 'textarea' }
+        ];
+
+        const schemaSiswa = [
+          { name: 'siswa_id', label: 'ID Siswa', type: 'text' },
+          { name: 'nama', label: 'Nama Siswa', type: 'text', required: true },
+          { name: 'tempat_lahir', label: 'Tempat Lahir', type: 'text' },
+          { name: 'tanggal_lahir', label: 'Tanggal Lahir', type: 'date', required: true },
+          { name: 'asal_sekolah', label: 'Asal Sekolah', type: 'text' },
+          { name: 'nama_orang_tua', label: 'Nama Orang Tua', type: 'text', required: true },
+          { name: 'alamat', label: 'Alamat', type: 'textarea' },
+          { name: 'parent_email', label: 'Email Wali', type: 'text', required: true },
+          { name: 'kelompok_id', label: 'Kelompok Belajar', type: 'select', required: true, options: () => listKelompokOptions.value },
+          { name: 'username', label: 'Akun Wali: Username', type: 'text', required: true, isVirtual: true },
+          { name: 'password', label: 'Akun Wali: Password', type: 'password', required: true, isVirtual: true }
+        ];
+
+        const schemaPengumuman = [
+          { name: 'pengumuman_id', label: 'ID Pengumuman', type: 'text' },
+          { name: 'judul', label: 'Judul Pengumuman', type: 'text', required: true },
+          { name: 'konten', label: 'Konten / Pengumuman', type: 'textarea', required: true },
+          { name: 'target_role', label: 'Target Role', type: 'select', required: true, options: [{value:'All',label:'Semua'},{value:'Pengelola',label:'Pengelola'},{value:'Tentor',label:'Tentor'},{value:'Parent',label:'Wali Murid'}] },
+          { name: 'tanggal_kirim', label: 'Tanggal Kirim', type: 'date', required: true },
+          { name: 'pembuat_id', label: 'ID Pembuat', type: 'text', defaultValue: 'USR-001', disabled: true }
+        ];
+
+        const schemaJabatan = [
+          { name: 'jabatan_id', label: 'ID Jabatan', type: 'text' },
+          { name: 'nama_jabatan', label: 'Nama Jabatan', type: 'text', required: true },
+          { name: 'keterangan', label: 'Keterangan', type: 'textarea' }
+        ];
+
+        const schemaPegawai = [
+          { name: 'pegawai_id', label: 'ID Pegawai', type: 'text' },
+          { name: 'nama', label: 'Nama Pegawai', type: 'text', required: true },
+          { name: 'tempat_lahir', label: 'Tempat Lahir', type: 'text' },
+          { name: 'tanggal_lahir', label: 'Tanggal Lahir', type: 'date', required: true },
+          { name: 'alamat', label: 'Alamat', type: 'textarea' },
+          { name: 'jabatan_id', label: 'Jabatan', type: 'select', required: true, options: () => listJabatanOptions.value },
+          { name: 'email', label: 'Email', type: 'text', required: true },
+          { name: 'gaji_per_sesi', label: 'Gaji Per Sesi (Tentor)', type: 'number', isCurrency: true },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: [{value:'Aktif',label:'Aktif'},{value:'Nonaktif',label:'Nonaktif'}] },
+          { name: 'username', label: 'Akun Pegawai: Username', type: 'text', required: true, isVirtual: true },
+          { name: 'password', label: 'Akun Pegawai: Password', type: 'password', required: true, isVirtual: true }
+        ];
+
+        const schemaKonfigurasiAkademik = [
+          { name: 'konfig_id', label: 'ID Konfig', type: 'text' },
+          { name: 'tahun_ajaran', label: 'Tahun Ajaran', type: 'text', required: true },
+          { name: 'semester', label: 'Semester', type: 'select', required: true, options: [{value:'Ganjil',label:'Ganjil'},{value:'Genap',label:'Genap'}] },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: [{value:'Aktif',label:'Aktif'},{value:'Nonaktif',label:'Nonaktif'}] }
+        ];
+
+        const schemaMapel = [
+          { name: 'mapel_id', label: 'ID Mapel', type: 'text' },
+          { name: 'nama_mapel', label: 'Nama Mapel', type: 'text', required: true },
+          { name: 'keterangan', label: 'Keterangan', type: 'textarea' }
+        ];
+
+        const schemaJadwal = [
+          { name: 'jadwal_id', label: 'ID Jadwal', type: 'text' },
+          { name: 'kelompok_id', label: 'Kelompok Belajar', type: 'select', required: true, options: () => listKelompokOptions.value },
+          { name: 'pegawai_id', label: 'Tentor Pengajar', type: 'select', required: true, options: () => listTentorOptions.value },
+          { name: 'mapel_id', label: 'Mata Pelajaran', type: 'select', required: true, options: () => listMapelOptions.value },
+          { name: 'hari', label: 'Hari Kelas', type: 'select', required: true, options: [{value:'Senin',label:'Senin'},{value:'Selasa',label:'Selasa'},{value:'Rabu',label:'Rabu'},{value:'Kamis',label:'Kamis'},{value:'Jumat',label:'Jumat'},{value:'Sabtu',label:'Sabtu'},{value:'Minggu',label:'Minggu'}] },
+          { name: 'jam_mulai', label: 'Jam Mulai', type: 'time', required: true },
+          { name: 'jam_selesai', label: 'Jam Selesai', type: 'time', required: true },
+          { name: 'ruangan', label: 'Ruangan Kelas', type: 'text' }
+        ];
+
+        const schemaJurnalMengajar = [
+          { name: 'jurnal_id', label: 'ID Jurnal', type: 'text' },
+          { name: 'jadwal_id', label: 'Pilih Jadwal Kelas', type: 'select', required: true, options: () => listJadwalOptions.value },
+          { name: 'tanggal', label: 'Tanggal', type: 'date', required: true },
+          { name: 'pegawai_id', label: 'Tentor', type: 'select', required: true, options: () => listTentorOptions.value },
+          { name: 'materi_pembahasan', label: 'Materi Pembahasan', type: 'text', required: true },
+          { name: 'catatan_evaluasi', label: 'Catatan/Evaluasi', type: 'textarea' }
+        ];
+
+        const schemaRescheduleJadwal = [
+          { name: 'reschedule_id', label: 'ID Reschedule', type: 'text' },
+          { name: 'jadwal_id', label: 'Jadwal Asal', type: 'select', required: true, options: () => listJadwalOptions.value },
+          { name: 'tanggal_original', label: 'Tanggal Asal', type: 'date', required: true },
+          { name: 'tanggal_baru', label: 'Tanggal Baru', type: 'date', required: true },
+          { name: 'jam_mulai_baru', label: 'Jam Mulai Baru', type: 'time', required: true },
+          { name: 'jam_selesai_baru', label: 'Jam Selesai Baru', type: 'time', required: true },
+          { name: 'alasan', label: 'Alasan Reschedule', type: 'textarea', required: true },
+          { name: 'status', label: 'Status Persetujuan', type: 'select', required: true, options: [{value:'Diajukan',label:'Diajukan'},{value:'Disetujui',label:'Disetujui'},{value:'Ditolak',label:'Ditolak'}] },
+          { name: 'disetujui_oleh', label: 'Disetujui Oleh (ID User)', type: 'text', defaultValue: 'USR-001', disabled: true }
+        ];
+
+        const schemaPosBayar = [
+          { name: 'pos_bayar_id', label: 'ID Pos Bayar', type: 'text' },
+          { name: 'nama_pos', label: 'Nama Pos Tagihan', type: 'text', required: true },
+          { name: 'nominal_tarif', label: 'Tarif Tagihan (Rp)', type: 'number', required: true, isCurrency: true },
+          { name: 'siswa_id', label: 'Siswa Penerima', type: 'select', required: true, options: () => listSiswaOptions.value },
+          { name: 'status_bayar', label: 'Status Pembayaran', type: 'select', required: true, options: [{value:'Belum Lunas',label:'Belum Lunas'},{value:'Lunas',label:'Lunas'}] },
+          { name: 'keterangan', label: 'Periode Keterangan', type: 'text' }
+        ];
+
+        const schemaKeuanganTrans = [
+          { name: 'transaksi_id', label: 'ID Transaksi', type: 'text' },
+          { name: 'tanggal', label: 'Tanggal Transaksi', type: 'date', required: true },
+          { name: 'tipe', label: 'Tipe Transaksi', type: 'select', required: true, options: [{value:'Kas Masuk',label:'Kas Masuk'},{value:'Kas Keluar',label:'Kas Keluar'}] },
+          { name: 'kategori', label: 'Kategori', type: 'select', required: true, options: [{value:'SPP',label:'SPP'},{value:'Pendaftaran',label:'Pendaftaran'},{value:'Gaji',label:'Gaji'},{value:'Buku',label:'Pembelian Buku'},{value:'Operasional',label:'Operasional'},{value:'Lain-lain',label:'Lain-lain'}] },
+          { name: 'nominal', label: 'Nominal (Rp)', type: 'number', required: true, isCurrency: true },
+          { name: 'metode_pembayaran', label: 'Metode Pembayaran', type: 'select', required: true, options: [{value:'Kas Tunai',label:'Kas Tunai'},{value:'Kas Bank',label:'Kas Bank'}] },
+          { name: 'pos_bayar_id', label: 'Rujukan Tagihan SPP (Opsional)', type: 'select', options: () => listPosBayarOptions.value },
+          { name: 'pegawai_id', label: 'Rujukan Pegawai Gaji (Opsional)', type: 'select', options: () => listPegawaiOptions.value },
+          { name: 'keterangan', label: 'Keterangan Tambahan', type: 'text' }
+        ];
+
+        const schemaPresensiSiswa = [
+          { name: 'presensi_siswa_id', label: 'ID Presensi Siswa', type: 'text' },
+          { name: 'jadwal_id', label: 'Jadwal / Sesi Kelas', type: 'select', required: true, options: () => listJadwalOptions.value },
+          { name: 'siswa_id', label: 'Nama Siswa', type: 'select', required: true, options: () => listSiswaOptions.value },
+          { name: 'tanggal', label: 'Tanggal Kelas', type: 'date', required: true },
+          { name: 'status_kehadiran', label: 'Status Kehadiran', type: 'select', required: true, options: [{value:'Hadir',label:'Hadir'},{value:'Izin',label:'Izin'},{value:'Sakit',label:'Sakit'},{value:'Alpa',label:'Alpa'}] },
+          { name: 'keterangan', label: 'Catatan Keterangan', type: 'text' }
+        ];
+
+        const schemaPresensiPegawai = [
+          { name: 'presensi_pegawai_id', label: 'ID Presensi Pegawai', type: 'text' },
+          { name: 'pegawai_id', label: 'Nama Pegawai/Tentor', type: 'select', required: true, options: () => listPegawaiOptions.value },
+          { name: 'jadwal_id', label: 'Jadwal / Sesi Kelas', type: 'select', required: true, options: () => listJadwalOptions.value },
+          { name: 'tanggal', label: 'Tanggal Kelas', type: 'date', required: true },
+          { name: 'status_kehadiran', label: 'Status Kehadiran', type: 'select', required: true, options: [{value:'Hadir',label:'Hadir'},{value:'Izin',label:'Izin'},{value:'Sakit',label:'Sakit'},{value:'Alpa',label:'Alpa'}] },
+          { name: 'keterangan', label: 'Catatan Keterangan', type: 'text' }
+        ];
+
+        // ----------------- CALCULATED DYNAMIC FIELDS -----------------
+        const totalIncomeNum = ref(0);
+        const totalExpenseNum = ref(0);
+        const avgAttendanceString = ref('100%');
+        const totalKasTunai = ref(0);
+        const totalKasBank = ref(0);
+
+        const dbGajiPegawai = computed(() => {
+          const tentors = dbPegawai.value.filter(p => p.status === 'Aktif');
+          return tentors.map(t => {
+            const sesiHadir = dbPresensiPegawai.value.filter(p => p.pegawai_id === t.pegawai_id && p.status_kehadiran === 'Hadir').length;
+            const rate = parseFloat(t.gaji_per_sesi) || 0;
+            return {
+              pegawai_id: t.pegawai_id,
+              nama: t.nama,
+              gajiPerSesi: rate,
+              sesiHadir: sesiHadir,
+              totalGaji: sesiHadir * rate
+            };
+          });
+        });
+
+        // Custom Monthly Attendance summary dynamic logic
+        const monthlyReportData = computed(() => {
+          if (!reportMonth.value) return [];
+          const [yearStr, monthStr] = reportMonth.value.split('-');
+          const targetYear = parseInt(yearStr, 10);
+          const targetMonth = parseInt(monthStr, 10) - 1; // 0-indexed
+
+          return dbPegawai.value.map(p => {
+            const logs = dbPresensiPegawai.value.filter(log => {
+              if (log.pegawai_id !== p.pegawai_id || !log.tanggal) return false;
+              const d = new Date(log.tanggal);
+              return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
+            });
+
+            const hadir = logs.filter(l => l.status_kehadiran === 'Hadir').length;
+            const izin = logs.filter(l => l.status_kehadiran === 'Izin').length;
+            const sakit = logs.filter(l => l.status_kehadiran === 'Sakit').length;
+            const alpa = logs.filter(l => l.status_kehadiran === 'Alpa').length;
+
+            return {
+              pegawai_id: p.pegawai_id,
+              nama: p.nama,
+              hadir,
+              izin,
+              sakit,
+              alpa
+            };
+          });
+        });
+
+        // ----------------- ON MOUNTED LIFECYCLE -----------------
+        onMounted(async () => {
+          const rawUser = sessionStorage.getItem('user');
+          if (!rawUser) {
+            window.location.href = './index.html';
+            return;
+          }
+          const user = JSON.parse(rawUser);
+          if (user.role !== 'pengelola') {
+            window.location.href = './index.html';
+            return;
+          }
+          userName.value = user.display_name;
+          userAccountId.value = user.user_id;
+
+          // Prepopulate settings form defaults
+          settingsForm.username = user.username;
+
+          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+          const today = new Date();
+          systemDateString.value = today.toLocaleDateString('id-ID', options);
+
+          nextTick(async () => {
+            renderOverviewCharts();
+            mapDatabaseCache();
+            await reloadAll();
+          });
+        });
+
+        // Read dynamic tables from cache and update charts & stats
+        const mapDatabaseCache = () => {
+          dbKelompok.value = window.getRoleData("KelompokBelajar");
+          dbSiswa.value = window.getRoleData("Siswa");
+          dbPengumuman.value = window.getRoleData("Pengumuman");
+          dbJabatan.value = window.getRoleData("Jabatan");
+          dbPegawai.value = window.getRoleData("Pegawai");
+          dbPresensiPegawai.value = window.getRoleData("PresensiPegawai");
+          dbKonfigurasiAkademik.value = window.getRoleData("KonfigurasiAkademik");
+          dbMapel.value = window.getRoleData("Mapel");
+          dbJadwal.value = window.getRoleData("Jadwal");
+          dbJurnalMengajar.value = window.getRoleData("JurnalMengajar");
+          dbRescheduleJadwal.value = window.getRoleData("RescheduleJadwal");
+          dbPosBayar.value = window.getRoleData("PosBayar");
+          dbKeuanganTrans.value = window.getRoleData("KeuanganTrans");
+          dbPresensiSiswa.value = window.getRoleData("PresensiSiswa");
+          dbUsers.value = window.getRoleData("Users");
+
+          calculateOverviewMetrics();
+        };
+
+        const calculateOverviewMetrics = () => {
+          // 1. Siswa Aktif count
+          stats[0].value = dbSiswa.value.length.toLocaleString('id-ID');
+          stats[0].sub = `Total siswa terdaftar`;
+
+          // 2. Total Tentor count
+          stats[1].value = dbPegawai.value.length.toLocaleString('id-ID');
+          stats[1].sub = `Staf & Guru Bimbel`;
+
+          // 3. Keuangan
+          let totalMasuk = 0;
+          let totalKeluar = 0;
+          let kasTunai = 0;
+          let kasBank = 0;
+
+          const chartMasuk = [0, 0, 0, 0, 0, 0];
+          const chartKeluar = [0, 0, 0, 0, 0, 0];
+
+          dbKeuanganTrans.value.forEach(t => {
+            const nominal = parseFloat(t.nominal) || 0;
+            if (t.tipe === 'Kas Masuk') {
+              totalMasuk += nominal;
+              if (t.metode_pembayaran === 'Kas Tunai') kasTunai += nominal;
+              else kasBank += nominal;
+            } else if (t.tipe === 'Kas Keluar') {
+              totalKeluar += nominal;
+              if (t.metode_pembayaran === 'Kas Tunai') kasTunai -= nominal;
+              else kasBank -= nominal;
+            }
+
+            if (t.tanggal) {
+              const month = new Date(t.tanggal).getMonth();
+              if (month >= 0 && month <= 5) {
+                if (t.tipe === 'Kas Masuk') chartMasuk[month] += nominal;
+                else chartKeluar[month] += nominal;
+              }
+            }
+          });
+
+          totalIncomeNum.value = totalMasuk;
+          totalExpenseNum.value = totalKeluar;
+          totalKasTunai.value = kasTunai;
+          totalKasBank.value = kasBank;
+
+          stats[2].value = 'Rp ' + totalMasuk.toLocaleString('id-ID');
+          stats[2].sub = 'Total kas masuk';
+          stats[3].value = 'Rp ' + totalKeluar.toLocaleString('id-ID');
+          stats[3].sub = 'Total operasional & honor';
+
+          // Update Overview charts
+          if (mainChart) {
+            mainChart.data.datasets[0].data = chartMasuk;
+            mainChart.data.datasets[1].data = chartKeluar;
+            mainChart.update();
+          }
+          if (reportsKeuanganChart) {
+            reportsKeuanganChart.data.datasets[0].data = chartMasuk;
+            reportsKeuanganChart.data.datasets[1].data = chartKeluar;
+            reportsKeuanganChart.update();
+          }
+
+          // 4. Presensi Kehadiran Siswa
+          let hadir = 0, izin = 0, sakit = 0, alpa = 0;
+          dbPresensiSiswa.value.forEach(p => {
+            const s = p.status_kehadiran;
+            if (s === 'Hadir') hadir++;
+            else if (s === 'Izin') izin++;
+            else if (s === 'Sakit') sakit++;
+            else if (s === 'Alpa') alpa++;
+          });
+          const total = hadir + izin + sakit + alpa;
+          const presenceRate = total > 0 ? ((hadir / total) * 100).toFixed(1) : '100';
+          avgAttendanceString.value = `${presenceRate}%`;
+
+          // Update Doughnut/Pie charts
+          if (secondaryChart && total > 0) {
+            secondaryChart.data.datasets[0].data = [hadir, izin, sakit, alpa];
+            secondaryChart.update();
+          }
+          if (reportsPresensiChart && total > 0) {
+            reportsPresensiChart.data.datasets[0].data = [hadir, izin, sakit, alpa];
+            reportsPresensiChart.update();
+          }
+
+          // 5. Announcements
+          const filteredPgm = dbPengumuman.value;
+          announcements.value = filteredPgm.map(p => ({
+            title: p.judul,
+            desc: p.konten,
+            time: p.tanggal_kirim ? new Date(p.tanggal_kirim).toLocaleDateString('id-ID') : 'Baru saja',
+            type: p.judul.includes('Penting') || p.judul.includes('Evaluasi') ? 'warning' : 'success'
+          }));
+
+          if (announcements.value.length === 0) {
+            announcements.value = [{
+              title: "Belum Ada Pengumuman",
+              desc: "Silakan kirim pengumuman baru melalui modul Kesiswaan.",
+              time: "-",
+              type: "success"
+            }];
+          }
+        };
+
+        // Reload data from Apps Script API and remap caches
+        const reloadAll = async () => {
+          const rawUser = sessionStorage.getItem('user');
+          if (rawUser) {
+            try {
+              const user = JSON.parse(rawUser);
+              await window.fetchRoleData(user);
+              mapDatabaseCache();
+            } catch(e) {
+              console.error(e);
+            }
+          }
+        };
+
+        // Sync Database button manual trigger
+        const alertDatabase = async () => {
+          await reloadAll();
+          Swal.fire({
+            icon: 'success',
+            title: 'Sinkronisasi Berhasil',
+            text: 'Data terbaru berhasil ditarik dari Google Sheets.',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        };
+
+        // Change Credentials Settings Handler
+        const handleChangeCredentials = async () => {
+          if (settingsForm.newPassword !== settingsForm.confirmPassword) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Sandi Baru Tidak Cocok',
+              text: 'Konfirmasi password baru yang Anda masukkan tidak sesuai.',
+              confirmButtonColor: '#2563eb'
+            });
+            return;
+          }
+
+          isSettingsSaving.value = true;
+          try {
+            const rawUser = sessionStorage.getItem('user');
+            const currentUser = JSON.parse(rawUser);
+
+            // Hash password lama dan baru menggunakan SHA-256
+            const oldHash = await window.sha256Hash(settingsForm.oldPassword);
+            const newHash = await window.sha256Hash(settingsForm.newPassword);
+
+            // Kirim ke server action change_password (server yang validasi)
+            const response = await fetch(window.GAS_URL, {
+              method: 'POST',
+              mode: 'cors',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({
+                action: 'change_password',
+                user_id: currentUser.user_id,
+                old_password_hash: oldHash,
+                new_password_hash: newHash,
+                new_username: settingsForm.username
+              })
+            });
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+              Swal.fire({
+                icon: 'success',
+                title: 'Akun Berhasil Diubah',
+                text: 'Username dan sandi Anda telah diperbarui. Silakan masuk kembali.',
+                confirmButtonColor: '#2563eb'
+              }).then(() => {
+                sessionStorage.clear();
+                window.location.href = './index.html';
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal Mengubah Sandi',
+                text: result.message || 'Password lama yang Anda masukkan salah.',
+                confirmButtonColor: '#ef4444'
+              });
+            }
+
+          } catch(err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: err.message || 'Gagal mengubah sandi akun.',
+              confirmButtonColor: '#ef4444'
+            });
+          } finally {
+            isSettingsSaving.value = false;
+          }
+        };
+
+        const pageTitle = computed(() => {
+          if (activePage.value === 'dashboard') return 'Dashboard';
+          return activeParentLabel.value ? `${activeParentLabel.value} \u203A ${activePageLabel.value}` : activePageLabel.value;
+        });
+
+        const placeholderIcon = computed(() => 'fa-chart-pie');
+        const placeholderDesc = computed(() => '');
+
+        const openSidebar = () => {
+          if (sidebarRef.value) sidebarRef.value.toggleSidebar(true);
+        };
+
+        const handleNavigate = (event) => {
+          navigateTo(event.id, event.label, event.parentLabel);
+        };
+
+        const navigateTo = (pageId, label, parentLabel = '') => {
+          activePage.value = pageId;
+          activePageLabel.value = label;
+          activeParentLabel.value = parentLabel;
+
+          // Re-render chart on page navigation specifically if Laporan is loaded
+          if (pageId === 'laporan') {
+            nextTick(() => {
+              renderReportsCharts();
+            });
+          }
+        };
+
+        const handleLogout = () => {
+          sessionStorage.clear();
+          window.location.href = './index.html';
+        };
+
+        // Render main dashboard charts
+        const renderOverviewCharts = () => {
+          const mainCtx = document.getElementById('mainDashboardChart').getContext('2d');
+          const secCtx = document.getElementById('secondaryDashboardChart').getContext('2d');
+
+          mainChart = new Chart(mainCtx, {
+            type: 'bar',
+            data: {
+              labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+              datasets: [
+                {
+                  label: 'Kas Masuk (SPP & Buku)',
+                  data: [0, 0, 0, 0, 0, 0],
+                  backgroundColor: '#3b82f6',
+                  borderRadius: 4
+                },
+                {
+                  label: 'Kas Keluar (Operasional & Gaji)',
+                  data: [0, 0, 0, 0, 0, 0],
+                  backgroundColor: '#ef4444',
+                  borderRadius: 4
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'top', labels: { font: { family: 'Outfit', size: 12 } } }
+              },
+              scales: {
+                y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Outfit' } } },
+                x: { grid: { display: false }, ticks: { font: { family: 'Outfit' } } }
+              }
+            }
+          });
+
+          secondaryChart = new Chart(secCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
+              datasets: [{
+                data: [100, 0, 0, 0],
+                backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#ef4444'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'right', labels: { font: { family: 'Outfit', size: 12 } } }
+              }
+            }
+          });
+        };
+
+        // Render reports page charts
+        const renderReportsCharts = () => {
+          if (reportsKeuanganChart) reportsKeuanganChart.destroy();
+          if (reportsPresensiChart) reportsPresensiChart.destroy();
+
+          const repKeuCtx = document.getElementById('laporanKeuanganChart').getContext('2d');
+          const repPreCtx = document.getElementById('laporanPresensiChart').getContext('2d');
+
+          // Pull dataset from KeuanganTrans grouped by month
+          const chartMasuk = [0, 0, 0, 0, 0, 0];
+          const chartKeluar = [0, 0, 0, 0, 0, 0];
+          dbKeuanganTrans.value.forEach(t => {
+            const nominal = parseFloat(t.nominal) || 0;
+            if (t.tanggal) {
+              const month = new Date(t.tanggal).getMonth();
+              if (month >= 0 && month <= 5) {
+                if (t.tipe === 'Kas Masuk') chartMasuk[month] += nominal;
+                else chartKeluar[month] += nominal;
+              }
+            }
+          });
+
+          reportsKeuanganChart = new Chart(repKeuCtx, {
+            type: 'bar',
+            data: {
+              labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+              datasets: [
+                { label: 'Pemasukan', data: chartMasuk, backgroundColor: '#10b981', borderRadius: 4 },
+                { label: 'Pengeluaran', data: chartKeluar, backgroundColor: '#ef4444', borderRadius: 4 }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'top', labels: { font: { family: 'Outfit' } } } },
+              scales: {
+                y: { grid: { color: '#e2e8f0' }, ticks: { font: { family: 'Outfit' } } },
+                x: { ticks: { font: { family: 'Outfit' } } }
+              }
+            }
+          });
+
+          // Pull dataset from PresensiSiswa
+          let hadir = 0, izin = 0, sakit = 0, alpa = 0;
+          dbPresensiSiswa.value.forEach(p => {
+            const s = p.status_kehadiran;
+            if (s === 'Hadir') hadir++;
+            else if (s === 'Izin') izin++;
+            else if (s === 'Sakit') sakit++;
+            else if (s === 'Alpa') alpa++;
+          });
+
+          reportsPresensiChart = new Chart(repPreCtx, {
+            type: 'pie',
+            data: {
+              labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
+              datasets: [{
+                data: [hadir, izin, sakit, alpa],
+                backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#ef4444'],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'right', labels: { font: { family: 'Outfit' } } } }
+            }
+          });
+        };
+
+        return {
+          sidebarRef,
+          userName,
+          activePage,
+          activePageLabel,
+          activeParentLabel,
+          systemDateString,
+          sidebarMenu,
+          stats,
+          announcements,
+          pageTitle,
+          placeholderIcon,
+          placeholderDesc,
+          openSidebar,
+          handleNavigate,
+          navigateTo,
+          handleLogout,
+          alertDatabase,
+          serverStatusColor,
+          serverStatusText,
+          connectionText,
+          gasUrlVal,
+          
+          // Database cache
+          dbKelompok,
+          dbSiswa,
+          dbPengumuman,
+          dbJabatan,
+          dbPegawai,
+          dbPresensiPegawai,
+          dbPresensiSiswa,
+          dbKonfigurasiAkademik,
+          dbMapel,
+          dbJadwal,
+          dbJurnalMengajar,
+          dbRescheduleJadwal,
+          dbPosBayar,
+          dbKeuanganTrans,
+          dbGajiPegawai,
+          // CRUD Field Schemas
+          schemaKelompok,
+          schemaSiswa,
+          schemaPengumuman,
+          schemaJabatan,
+          schemaPegawai,
+          schemaKonfigurasiAkademik,
+          schemaMapel,
+          schemaJadwal,
+          schemaJurnalMengajar,
+          schemaRescheduleJadwal,
+          schemaPosBayar,
+          schemaKeuanganTrans,
+          schemaPresensiSiswa,
+          schemaPresensiPegawai,
+          
+          // Custom Laporan Absensi Bulanan
+          reportMonth,
+          monthlyReportData,
+          
+          // Select dropdown mappings
+          listKelompokOptions,
+          listJabatanOptions,
+          listPegawaiOptions,
+          listTentorOptions,
+          listMapelOptions,
+          listSiswaOptions,
+          listPosBayarOptions,
+          listJadwalOptions,
+          
+          // Laporan calculations
+          totalIncomeNum,
+          totalExpenseNum,
+          totalKasTunai,
+          totalKasBank,
+          avgAttendanceString,
+          reloadAll,
+          
+          // Settings change form
+          settingsForm,
+          isSettingsSaving,
+          handleChangeCredentials
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

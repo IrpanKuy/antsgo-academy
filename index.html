@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - AntsGo Academy</title>
+  
+  <!-- Font Outfit & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Production Client Database Configuration -->
+  <script src="data.js"></script>
+
+  <style>
+    :root {
+      --color-primary: #2563eb;
+      --color-primary-hover: #1d4ed8;
+      --color-bg-light: #f1f5f9;      /* Warna latar belakang abu-abu cerah */
+      --color-card-bg: #ffffff;       /* Card putih bersih */
+      --color-border: #cbd5e1;
+      
+      --text-main: #0f172a;           /* Teks utama gelap */
+      --text-muted: #64748b;          /* Teks muted abu-abu */
+      --text-light: #ffffff;
+      
+      --color-blue: #3b82f6;
+      --color-rose: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: var(--color-bg-light);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      background-color: var(--color-card-bg);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 16px;
+      padding: 44px 32px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .brand-section {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .brand-logo {
+      width: 64px;
+      height: 64px;
+      background-color: rgba(37, 99, 235, 0.06);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      color: var(--color-primary);
+      margin-bottom: 16px;
+    }
+
+    .brand-name {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text-main);
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 22px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 46px;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0 16px 0 44px;
+      font-size: 14px;
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--color-primary);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 46px;
+      background-color: var(--color-primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background-color 0.2s;
+      margin-top: 28px;
+    }
+
+    .btn-submit:hover {
+      background-color: var(--color-primary-hover);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="brand-section">
+      <div class="brand-logo" style="background: none; box-shadow: none; border-radius: 0; width: auto; height: 60px; margin-bottom: 16px; display: flex; justify-content: center; align-items: center;">
+        <img src="logo.png" alt="AntsGo Academy" style="height: 60px; object-fit: contain;">
+      </div>
+      <h1 class="brand-name">AntsGo Academy</h1>
+      <p class="brand-subtitle">Sistem Informasi Manajemen Bimbel</p>
+    </div>
+
+    <!-- Login Form -->
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <div class="input-wrapper">
+          <i class="fa-regular fa-user input-icon"></i>
+          <input class="form-input" type="text" id="username" placeholder="Masukkan username" required autocomplete="username">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input class="form-input" type="password" id="password" placeholder="Masukkan password" required autocomplete="current-password">
+        </div>
+      </div>
+
+      <button class="btn-submit" type="submit" id="submitBtn">
+        <span>Masuk</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>
+      </button>
+    </form>
+  </div>
+
+  <script>
+    // Auto-check session aktif ketika halaman dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      const activeUser = sessionStorage.getItem('user');
+      if (activeUser) {
+        const user = JSON.parse(activeUser);
+        redirectUser(user.role);
+      }
+    });
+
+    // Jalankan submit form login
+    async function handleLogin(event) {
+      event.preventDefault();
+      const usernameInput = document.getElementById('username').value.trim();
+      const passwordInput = document.getElementById('password').value;
+      const submitBtn = document.getElementById('submitBtn');
+
+      // Validasi konfigurasi URL Apps Script
+      if (!window.GAS_URL || window.GAS_URL.trim() === "" || window.GAS_URL === "ISI_URL_WEB_APP_GAS_ANDA_DISINI") {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Konfigurasi Diperlukan',
+          text: 'Harap masukkan URL Web App Google Apps Script Anda pada berkas data.js sebelum melakukan login.',
+          confirmButtonColor: '#2563eb'
+        });
+        return;
+      }
+
+      // Set Loading UI State
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>Memproses...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
+
+      try {
+        // Hash password sebelum dikirim ke server
+        const hashedPassword = await window.sha256Hash(passwordInput);
+
+        const response = await fetch(window.GAS_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: "login",
+            username: usernameInput,
+            password: hashedPassword
+          })
+        });
+
+        const authResult = await response.json();
+
+        if (authResult && authResult.status === "success") {
+          // Tambahkan inisial avatar
+          authResult.user.avatarInitials = getInitials(authResult.user.display_name);
+          
+          // Simpan session pengguna
+          sessionStorage.setItem('user', JSON.stringify(authResult.user));
+          
+          // Tampilkan loading pengambilan data spreadsheet
+          submitBtn.innerHTML = `<span>Memuat Data...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
+          
+          // Tarik seluruh data sheet yang dibutuhkan oleh role tersebut secara paralel
+          try {
+            await window.fetchRoleData(authResult.user);
+          } catch(err) {
+            console.error("Gagal memuat data sheet untuk role:", err);
+          }
+          
+          // Alert sukses masuk
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil Masuk',
+            text: `Selamat datang kembali, ${authResult.user.display_name}!`,
+            showConfirmButton: false,
+            timer: 1500
+          }).then(() => {
+            redirectUser(authResult.user.role);
+          });
+        } else {
+          // Alert password salah
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Masuk',
+            text: authResult.message || 'Username atau password yang Anda masukkan salah!',
+            confirmButtonColor: '#ef4444'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: 'Gagal terhubung dengan server Google Apps Script. Pastikan Web App Anda telah dideploy dengan benar dan CORS diizinkan.',
+          confirmButtonColor: '#ef4444'
+        });
+        console.error(err);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Masuk</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
+      }
+    }
+
+    // Arahkan ke berkas dashboard berdasarkan role
+    function redirectUser(role) {
+      if (role === 'pengelola') {
+        window.location.href = './dashboard_pengelola.html';
+      } else if (role === 'tentor') {
+        window.location.href = './dashboard_tentor.html';
+      } else if (role === 'parent') {
+        window.location.href = './dashboard_parent.html';
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Akses Ditolak',
+          text: 'Role pengguna tidak dikenali oleh sistem.',
+          confirmButtonColor: '#ef4444'
+        });
+      }
+    }
+
+    // Mendapatkan inisial nama
+    function getInitials(name) {
+      if (!name) return 'U';
+      const parts = name.split(' ');
+      let initials = '';
+      if (parts.length > 0) initials += parts[0][0];
+      if (parts.length > 1) initials += parts[1][0];
+      return initials.toUpperCase();
+    }
+  </script>
+</body>
+</html>

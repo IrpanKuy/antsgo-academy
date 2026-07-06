@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Wali Murid - AntsGo Academy</title>
+  
+  <!-- Font Outfit & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Shared Style Sheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Shared Client-Side Database & GAS CONFIG -->
+  <script src="data.js"></script>
+
+  <!-- Chart.js & Vue.js 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  
+  <!-- Shared Vue Components -->
+  <script src="components.js"></script>
+
+  <style>
+    /* Custom style tweaks specifically for parent dashboard printing */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-receipt-modal, #print-receipt-modal * {
+        visibility: visible;
+      }
+      #print-receipt-modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        background: white !important;
+        color: black !important;
+      }
+      .modal-actions-print {
+        display: none !important;
+      }
+      .receipt-stamp {
+        border-color: #059669 !important;
+        color: #059669 !important;
+      }
+    }
+
+    /* Learning Feed / Timeline Card List */
+    .timeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .timeline-card {
+      background-color: var(--color-card-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .timeline-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+    }
+    .timeline-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .timeline-date {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      position: absolute;
+      right: 20px;
+      top: 20px;
+    }
+    .timeline-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .timeline-author {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .timeline-body {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #334155;
+      background-color: var(--color-bg-light);
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 3px solid var(--color-primary);
+    }
+
+    /* printable receipt structure */
+    .receipt-container {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 650px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      border: 1px solid var(--color-border);
+      font-family: 'Outfit', sans-serif;
+      position: relative;
+      color: #1e293b;
+    }
+    .receipt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+    .receipt-logo {
+      font-weight: 800;
+      font-size: 22px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .receipt-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      text-align: right;
+    }
+    .receipt-meta {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+      text-align: right;
+    }
+    .receipt-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+    .receipt-label {
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    .receipt-value {
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .receipt-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    .receipt-table th {
+      background-color: #f8fafc;
+      font-weight: 600;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      text-transform: uppercase;
+      color: #475569;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    .receipt-table td {
+      padding: 12px;
+      font-size: 13.5px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    .receipt-total-row td {
+      font-weight: 800;
+      font-size: 15px;
+      background-color: #f8fafc;
+      border-bottom: 2px solid #cbd5e1;
+    }
+    .receipt-terbilang {
+      font-style: italic;
+      font-size: 12.5px;
+      color: #475569;
+      background-color: #f1f5f9;
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin-bottom: 24px;
+    }
+    .receipt-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 40px;
+      font-size: 13px;
+    }
+    .receipt-stamp {
+      border: 3px double #10b981;
+      color: #10b981;
+      font-weight: 800;
+      font-size: 16px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      transform: rotate(-8deg);
+      text-transform: uppercase;
+      display: inline-block;
+      letter-spacing: 1px;
+    }
+    .receipt-signature-area {
+      text-align: center;
+      width: 160px;
+    }
+    .receipt-sig-line {
+      border-bottom: 1px solid #94a3b8;
+      margin-bottom: 6px;
+      height: 60px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app" class="app-container">
+    
+    <!-- Shared Sidebar Navigation Component -->
+    <app-sidebar
+      ref="sidebarRef"
+      :active-page="activePage"
+      :sidebar-menu="sidebarMenu"
+      role-text="Wali Murid"
+      :avatar-initials="avatarInitials"
+      @navigate="handleNavigate"
+      @logout="handleLogout"
+    ></app-sidebar>
+
+    <!-- MAIN CONTENT WRAPPER -->
+    <main class="main-wrapper">
+      
+      <!-- Shared Header Nav Component -->
+      <app-header
+        :page-title="pageTitle"
+        :system-date-string="systemDateString"
+        :user-name="userName"
+        role-text="Orang Tua Siswa"
+        :avatar-initials="avatarInitials"
+        @toggle-sidebar="openSidebar"
+        @navigate-settings="navigateTo('pengaturan', 'Pengaturan')"
+        @logout="handleLogout"
+      ></app-header>
+
+      <!-- Content Body -->
+      <section class="content-body">
+        
+        <!-- ========================================== -->
+        <!-- 1. DASHBOARD OVERVIEW SECTION -->
+        <!-- ========================================== -->
+        <div class="page-section" :class="{ active: activePage === 'dashboard' }">
+          
+          <!-- Welcome & Student Info Banner -->
+          <div class="content-card" style="margin-bottom: 24px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; border: none; padding: 28px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <span class="placeholder-badge" style="background-color: var(--color-blue); color: white; font-weight: 700; margin-bottom: 8px; display: inline-block;">WALI MURID</span>
+                <h2 style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Selamat Datang Kembali, {{ userName }}!</h2>
+                <p style="font-size: 13.5px; color: #cbd5e1; margin-top: 4px;">
+                  Memantau perkembangan akademis dan tagihan keuangan untuk Ananda <strong>{{ studentName }}</strong>.
+                </p>
+              </div>
+              <div style="background-color: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 12px 18px; border-radius: 8px; font-size: 12.5px;">
+                <div><strong>Nama Siswa:</strong> {{ studentName }}</div>
+                <div><strong>ID Siswa:</strong> {{ studentId }}</div>
+                <div style="margin-top: 4px;"><strong>Rombel:</strong> {{ kelompokName }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Today's Schedule Verification Widget -->
+          <div v-if="todaySchedules.length > 0" class="content-card" style="margin-bottom: 24px; border: 2px solid var(--color-blue); background-color: rgba(59, 130, 246, 0.03);">
+            <div class="card-header" style="margin-bottom: 12px;">
+              <h3 class="card-title" style="color: var(--color-blue); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-bell fa-bounce" style="color: var(--color-blue);"></i>
+                Jadwal Belajar Hari Ini - Verifikasi Kehadiran Tentor
+              </h3>
+              <span class="placeholder-badge" style="background-color: var(--color-blue); color: white; padding: 2px 8px; font-size: 11.5px; border-radius: 4px; font-weight: 700;">Konfirmasi Orang Tua</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+              Mohon bantu konfirmasi kehadiran Tentor yang mengajar Ananda hari ini. Klik tombol konfirmasi setelah kelas dimulai/selesai.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div v-for="sched in todaySchedules" :key="sched.jadwal_id" style="background: white; border: 1px solid var(--color-border); border-radius: 8px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div>
+                  <h4 style="font-size: 14px; font-weight: 700; color: var(--text-main);">
+                    {{ getMapelName(sched.mapel_id) }}
+                  </h4>
+                  <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                    Tentor: <strong>{{ getTeacherName(sched.pegawai_id) }}</strong> &bull; Waktu: {{ sched.jam_mulai }} - {{ sched.jam_selesai }} (Ruang: {{ sched.ruangan || '-' }})
+                  </p>
+                </div>
+                <div>
+                  <!-- If already verified -->
+                  <div v-if="isTentorVerified(sched.jadwal_id)" style="display: flex; align-items: center; gap: 6px; color: var(--color-emerald); font-weight: 700; font-size: 13.5px;">
+                    <i class="fa-solid fa-circle-check" style="font-size: 18px;"></i> Terkonfirmasi Hadir
+                  </div>
+                  <!-- Else show verification button -->
+                  <button v-else class="btn-flat btn-navy" style="background-color: var(--color-emerald); color: white; border: none; font-weight: 700; padding: 8px 16px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);" @click="confirmTentorPresence(sched)">
+                    <i class="fa-solid fa-check"></i> Konfirmasi Hadir
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Statistics Cards -->
+          <div class="stats-grid">
+            <div v-for="(card, index) in stats" :key="index" class="stat-card" :class="card.colorClass">
+              <div class="stat-details">
+                <span class="stat-title">{{ card.title }}</span>
+                <span class="stat-value">{{ card.value }}</span>
+                <span class="stat-trend" :class="card.trend">
+                  <i class="fa-solid fa-arrow-trend-up" v-if="card.trend === 'up'"></i>
+                  <i class="fa-solid fa-arrow-trend-down" v-if="card.trend === 'down'"></i>
+                  {{ card.sub }}
+                </span>
+              </div>
+              <div class="stat-icon-wrapper">
+                <i class="fa-solid" :class="card.icon"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="dashboard-row">
+            <div class="content-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-square-poll-vertical"></i>
+                    Rasio Kehadiran Ananda
+                  </h3>
+                  <p class="card-subtitle">Breakdown status kehadiran siswa selama sesi belajar berjalan</p>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="presenceChart"></canvas>
+              </div>
+            </div>
+
+            <div class="content-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-wallet"></i>
+                    Rasio Tagihan & SPP
+                  </h3>
+                  <p class="card-subtitle">Status kelunasan tagihan pembayaran SPP dan Non-SPP</p>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="invoiceChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Panels: Announcements & Student Profile Card -->
+          <div class="dashboard-row" style="grid-template-columns: 1.2fr 1fr;">
+            <!-- Announcements -->
+            <div class="content-card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-bullhorn"></i>
+                  Pengumuman Terbaru
+                </h3>
+                <span class="placeholder-badge">Untuk Wali Murid</span>
+              </div>
+              <div class="announcement-list">
+                <div v-for="(ann, idx) in announcements" :key="idx" class="announcement-item" :class="ann.type">
+                  <div class="announce-meta">
+                    <span class="placeholder-badge" style="padding: 1px 6px; font-size: 10px;">Info</span>
+                    <span>{{ ann.time }}</span>
+                  </div>
+                  <h4 class="announce-title">{{ ann.title }}</h4>
+                  <p class="announce-desc">{{ ann.desc }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Student Profile Sheet -->
+            <div class="content-card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+              <div>
+                <div class="card-header" style="margin-bottom: 12px; border-bottom: 1px solid var(--color-border); padding-bottom: 12px;">
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-id-card"></i>
+                    Profil Lengkap Anak
+                  </h3>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12.5px;">
+                  <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--color-border); padding-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Asal Sekolah:</span>
+                    <span style="font-weight: 600;">{{ studentProfile.asal_sekolah || '-' }}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--color-border); padding-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Tempat, Tgl Lahir:</span>
+                    <span style="font-weight: 600;">{{ studentProfile.tempat_lahir || '-' }}, {{ studentProfile.tanggal_lahir ? new Date(studentProfile.tanggal_lahir).toLocaleDateString('id-ID') : '-' }}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--color-border); padding-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Alamat Rumah:</span>
+                    <span style="font-weight: 600; text-align: right; max-width: 60%;">{{ studentProfile.alamat || '-' }}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--color-border); padding-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Email Orang Tua:</span>
+                    <span style="font-weight: 600;">{{ studentProfile.parent_email || '-' }}</span>
+                  </div>
+                </div>
+              </div>
+              <div style="background-color: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; font-size: 11.5px; line-height: 1.5; color: var(--text-muted);">
+                <i class="fa-solid fa-circle-question" style="color: var(--color-primary); margin-right: 4px;"></i>
+                Jika terdapat kesalahan data identitas di atas, silakan hubungi bagian administrasi pengelola bimbel.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 2. AKADEMIK PAGES -->
+        <!-- ========================================== -->
+        <!-- Jadwal Belajar Siswa -->
+        <div class="page-section" :class="{ active: activePage === 'jadwal-belajar' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-calendar-week"></i> Jadwal Belajar Mingguan Anak</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Berikut adalah daftar jadwal bimbingan belajar aktif untuk Rombel: <strong>{{ kelompokName }}</strong>.</p>
+            <div class="table-responsive-wrapper">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 800px;">
+                <thead>
+                  <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
+                    <th style="padding: 12px 16px; font-weight: 600; width: 140px;">Hari</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 160px;">Waktu</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Mata Pelajaran</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Tentor / Pengajar</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 140px;">Ruangan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="mySchedules.length === 0">
+                    <td colspan="5" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                      Tidak ada jadwal belajar terdaftar untuk kelas ini.
+                    </td>
+                  </tr>
+                  <tr v-for="j in mySchedules" :key="j.jadwal_id">
+                    <td style="padding: 12px 16px; font-weight: 700;">{{ j.hari }}</td>
+                    <td style="padding: 12px 16px;">{{ j.jam_mulai }} - {{ j.jam_selesai }}</td>
+                    <td style="padding: 12px 16px; font-weight: 600; color: var(--color-primary);">{{ getMapelName(j.mapel_id) }}</td>
+                    <td style="padding: 12px 16px;">{{ getTeacherName(j.pegawai_id) }}</td>
+                    <td style="padding: 12px 16px; color: var(--text-muted);">{{ j.ruangan || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Jurnal Kelas & Materi Pembelajaran -->
+        <div class="page-section" :class="{ active: activePage === 'materi-jurnal' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-book-open"></i> Materi & Jurnal Belajar Kelas</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Laporan materi pembahasan yang diajarkan oleh Tentor beserta catatan evaluasi kelas.</p>
+            
+            <div v-if="myMaterials.length === 0" style="padding: 48px; text-align: center; color: var(--text-muted);">
+              <i class="fa-solid fa-book-bookmark" style="font-size: 36px; margin-bottom: 12px; color: var(--color-border);"></i>
+              <h4>Belum Ada Materi Tercatat</h4>
+              <p style="font-size: 13px; margin-top: 4px;">Tentor belum mengunggah jurnal pembelajaran untuk jadwal kelas rombel ini.</p>
+            </div>
+
+            <div v-else class="timeline-container">
+              <div v-for="mat in myMaterials" :key="mat.jurnal_id" class="timeline-card">
+                <span class="timeline-date">{{ new Date(mat.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+                <span class="timeline-badge" style="background-color: rgba(139, 92, 246, 0.1); color: var(--color-purple);">{{ mat.mapel_name }}</span>
+                <h4 class="timeline-title">Materi: {{ mat.materi_pembahasan }}</h4>
+                <div class="timeline-author">
+                  <i class="fa-solid fa-circle-user"></i> Diajar oleh: <strong>{{ mat.teacher_name }}</strong>
+                </div>
+                <div class="timeline-body">
+                  <strong>Evaluasi Belajar & Catatan Tentor:</strong><br/>
+                  <span style="font-style: italic; font-size: 13px; margin-top: 4px; display: inline-block;">
+                    "{{ mat.catatan_evaluasi || 'Tidak ada catatan evaluasi khusus.' }}"
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Riwayat Presensi Kehadiran Siswa -->
+        <div class="page-section" :class="{ active: activePage === 'presensi-kehadiran' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-clipboard-user"></i> Riwayat Kehadiran Belajar</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Log presensi kehadiran harian anak pada setiap sesi bimbingan belajar.</p>
+            <div class="table-responsive-wrapper">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 700px;">
+                <thead>
+                  <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
+                    <th style="padding: 12px 16px; font-weight: 600; width: 180px;">Tanggal</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 220px;">Mata Pelajaran</th>
+                    <th style="padding: 12px 16px; font-weight: 600; text-align: center; width: 140px;">Status</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Keterangan / Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="myPresenceLogs.length === 0">
+                    <td colspan="4" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                      Belum ada riwayat kehadiran siswa terdaftar.
+                    </td>
+                  </tr>
+                  <tr v-for="log in myPresenceLogs" :key="log.presensi_siswa_id">
+                    <td style="padding: 12px 16px; font-weight: 600;">{{ new Date(log.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</td>
+                    <td style="padding: 12px 16px;">{{ getMapelNameFromJadwal(log.jadwal_id) }}</td>
+                    <td style="padding: 12px 16px; text-align: center;">
+                      <span :style="{
+                        backgroundColor: getPresenceColor(log.status_kehadiran).bg,
+                        color: getPresenceColor(log.status_kehadiran).fg,
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontWeight: '700',
+                        fontSize: '12px'
+                      }">{{ log.status_kehadiran }}</span>
+                    </td>
+                    <td style="padding: 12px 16px; color: var(--text-muted);">{{ log.keterangan || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 3. KEUANGAN PAGES -->
+        <!-- ========================================== -->
+        <!-- Daftar Tagihan SPP & Buku -->
+        <div class="page-section" :class="{ active: activePage === 'tagihan-pembayaran' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-file-invoice-dollar"></i> Tagihan Pembayaran SPP & Biaya</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Berikut rekapitulasi data tagihan SPP bulanan, modul/buku, serta uang pendaftaran bimbel.</p>
+            <div class="table-responsive-wrapper">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 800px;">
+                <thead>
+                  <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
+                    <th style="padding: 12px 16px; font-weight: 600; width: 100px;">ID</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 220px;">Nama Pos Tagihan</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 140px;">Tarif Tagihan</th>
+                    <th style="padding: 12px 16px; font-weight: 600; text-align: center; width: 140px;">Status</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Keterangan</th>
+                    <th style="padding: 12px 16px; font-weight: 600; text-align: center; width: 150px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="myBills.length === 0">
+                    <td colspan="6" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                      Tidak ada tagihan pembayaran terdaftar untuk anak ini.
+                    </td>
+                  </tr>
+                  <tr v-for="bill in myBills" :key="bill.pos_bayar_id">
+                    <td style="padding: 12px 16px; font-weight: 600;">{{ bill.pos_bayar_id }}</td>
+                    <td style="padding: 12px 16px; font-weight: 700; color: var(--text-main);">{{ bill.nama_pos }}</td>
+                    <td style="padding: 12px 16px; font-weight: 600;">Rp {{ parseFloat(bill.nominal_tarif).toLocaleString('id-ID') }}</td>
+                    <td style="padding: 12px 16px; text-align: center;">
+                      <span :style="{
+                        backgroundColor: bill.status_bayar === 'Lunas' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: bill.status_bayar === 'Lunas' ? 'var(--color-emerald)' : 'var(--color-rose)',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontWeight: '700',
+                        fontSize: '12px'
+                      }">{{ bill.status_bayar }}</span>
+                    </td>
+                    <td style="padding: 12px 16px; color: var(--text-muted);">{{ bill.keterangan || '-' }}</td>
+                    <td style="padding: 12px 16px; text-align: center;">
+                      <button 
+                        v-if="bill.status_bayar === 'Lunas'" 
+                        class="btn-flat btn-navy" 
+                        style="padding: 6px 12px; font-size: 12px; height: 30px; display: inline-flex;"
+                        @click="openReceipt(bill)"
+                      >
+                        <i class="fa-solid fa-print"></i> Cetak Kwitansi
+                      </button>
+                      <span v-else style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">
+                        <i class="fa-solid fa-circle-exclamation" style="color: var(--color-rose);"></i> Bayar di Loket
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Riwayat Pembayaran (Transaksi Masuk) -->
+        <div class="page-section" :class="{ active: activePage === 'riwayat-pembayaran' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-receipt"></i> Riwayat Pembayaran Digital</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Daftar penerimaan dana pembayaran SPP/Biaya bimbingan belajar yang telah terverifikasi oleh bendahara.</p>
+            <div class="table-responsive-wrapper">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 800px;">
+                <thead>
+                  <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
+                    <th style="padding: 12px 16px; font-weight: 600; width: 140px;">No. Transaksi</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 160px;">Tanggal Bayar</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Pos Pembayaran</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 150px;">Jumlah Bayar</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 140px;">Metode</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="myPayments.length === 0">
+                    <td colspan="6" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                      Belum ada catatan riwayat transaksi pembayaran.
+                    </td>
+                  </tr>
+                  <tr v-for="pay in myPayments" :key="pay.transaksi_id">
+                    <td style="padding: 12px 16px; font-weight: 700;">{{ pay.transaksi_id }}</td>
+                    <td style="padding: 12px 16px;">{{ new Date(pay.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) }}</td>
+                    <td style="padding: 12px 16px; font-weight: 600; color: var(--color-primary);">{{ getBillPosName(pay.pos_bayar_id) }}</td>
+                    <td style="padding: 12px 16px; font-weight: 700;">Rp {{ parseFloat(pay.nominal).toLocaleString('id-ID') }}</td>
+                    <td style="padding: 12px 16px;">
+                      <span style="background-color: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 600; color: #475569;">
+                        {{ pay.metode_pembayaran }}
+                      </span>
+                    </td>
+                    <td style="padding: 12px 16px; color: var(--text-muted);">{{ pay.keterangan || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 4. PENGATURAN (CHANGE CREDENTIALS) -->
+        <!-- ========================================== -->
+        <div class="page-section" :class="{ active: activePage === 'pengaturan' }">
+          <div class="content-card" style="max-width: 500px; margin: 0 auto;">
+            <div class="card-header" style="margin-bottom: 20px;">
+              <h3 class="card-title"><i class="fa-solid fa-key"></i> Ubah Username & Password Akun</h3>
+            </div>
+            
+            <form @submit.prevent="handleChangeCredentials">
+              <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Username Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="text" v-model="settingsForm.username" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Password Lama <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.oldPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Password Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.newPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Konfirmasi Password Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.confirmPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+              </div>
+
+              <button type="submit" class="btn-flat" style="width: 100%; justify-content: center; height: 40px;" :disabled="isSettingsSaving">
+                <span v-if="isSettingsSaving">Menyimpan Perubahan... <i class="fa-solid fa-spinner fa-spin"></i></span>
+                <span v-else><i class="fa-solid fa-save"></i> Simpan Perubahan</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- PRINTABLE DIGITAL RECEIPT MODAL DIALOG -->
+    <div v-if="isReceiptModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+      <div id="print-receipt-modal" class="receipt-container">
+        
+        <!-- Header -->
+        <div class="receipt-header">
+          <div>
+            <div class="receipt-logo">
+              <i class="fa-solid fa-graduation-cap" style="color: var(--color-primary);"></i>
+              <span>AntsGo Academy</span>
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+              Sistem Informasi Manajemen Bimbel Terpadu
+            </div>
+          </div>
+          <div>
+            <div class="receipt-title">Kwitansi Pembayaran</div>
+            <div class="receipt-meta">No. {{ selectedReceipt.transaksi_id }}</div>
+            <div class="receipt-meta">Tanggal: {{ new Date(selectedReceipt.tanggal_bayar).toLocaleDateString('id-ID') }}</div>
+          </div>
+        </div>
+
+        <!-- Student & Parent Information -->
+        <div class="receipt-grid">
+          <div>
+            <div class="receipt-label">DITERIMA DARI (WALI MURID):</div>
+            <div class="receipt-value">{{ userName }}</div>
+            <div style="margin-top: 8px;" class="receipt-label">UNTUK SISWA:</div>
+            <div class="receipt-value">{{ studentName }} ({{ studentId }})</div>
+          </div>
+          <div>
+            <div class="receipt-label">ROMBONGAN BELAJAR:</div>
+            <div class="receipt-value">{{ kelompokName }}</div>
+            <div style="margin-top: 8px;" class="receipt-label">METODE PEMBAYARAN:</div>
+            <div class="receipt-value">{{ selectedReceipt.metode_pembayaran }}</div>
+          </div>
+        </div>
+
+        <!-- Billing Items Table -->
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th>Deskripsi Pembayaran</th>
+              <th style="text-align: right; width: 180px;">Nominal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight: 600;">{{ selectedReceipt.nama_pos }}</td>
+              <td style="text-align: right; font-weight: 700;">Rp {{ parseFloat(selectedReceipt.nominal).toLocaleString('id-ID') }}</td>
+            </tr>
+            <tr class="receipt-total-row">
+              <td>TOTAL DIBAYAR</td>
+              <td style="text-align: right;">Rp {{ parseFloat(selectedReceipt.nominal).toLocaleString('id-ID') }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Terbilang Text -->
+        <div class="receipt-terbilang">
+          <strong>Terbilang:</strong> # {{ terbilangString }} Rupiah #
+        </div>
+
+        <!-- Footer signatures & stamp -->
+        <div class="receipt-footer">
+          <div>
+            <div class="receipt-stamp">
+              <i class="fa-solid fa-circle-check"></i> LUNAS VERIFIED
+            </div>
+          </div>
+          <div class="receipt-signature-area">
+            <div class="receipt-label" style="font-size: 11.5px;">AntsGo Academy Admin</div>
+            <div class="receipt-sig-line"></div>
+            <div class="receipt-value" style="font-size: 12.5px;">Bendahara Pusat</div>
+          </div>
+        </div>
+
+        <!-- Print Actions Footer (Hidden when Printing) -->
+        <div class="modal-actions-print" style="margin-top: 36px; border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button class="btn-flat btn-flat-secondary" style="height: 38px; padding: 0 16px;" @click="isReceiptModalOpen = false">
+            <i class="fa-solid fa-xmark"></i> Tutup
+          </button>
+          <button class="btn-flat btn-navy" style="height: 38px; padding: 0 16px;" @click="printReceipt">
+            <i class="fa-solid fa-print"></i> Cetak Sekarang
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, computed, onMounted, nextTick } = Vue;
+
+    createApp({
+      components: {
+        'app-sidebar': window.SidebarComponent,
+        'app-header': window.HeaderComponent,
+        'app-placeholder': window.PlaceholderComponent
+      },
+      setup() {
+        const sidebarRef = ref(null);
+        const userName = ref('');
+        const activePage = ref('dashboard');
+        const activePageLabel = ref('Dashboard');
+        const activeParentLabel = ref('');
+        const systemDateString = ref('');
+        const studentId = ref('');
+        const studentName = ref('');
+        const kelompokId = ref('');
+        const kelompokName = ref('');
+
+        let presenceChartInstance = null;
+        let invoiceChartInstance = null;
+
+        // Custom Receipt States
+        const isReceiptModalOpen = ref(false);
+        const selectedReceipt = reactive({
+          transaksi_id: '',
+          tanggal_bayar: '',
+          nama_pos: '',
+          nominal: 0,
+          metode_pembayaran: '',
+          keterangan: ''
+        });
+
+        // Reactive database caches
+        const dbSiswa = ref([]);
+        const dbPresensiSiswa = ref([]);
+        const dbPresensiPegawai = ref([]);
+        const dbPosBayar = ref([]);
+        const dbPengumuman = ref([]);
+        const dbJadwal = ref([]);
+        const dbMapel = ref([]);
+        const dbKelompok = ref([]);
+        const dbPegawai = ref([]);
+        const dbJurnalMengajar = ref([]);
+        const dbKeuanganTrans = ref([]);
+        const dbUsers = ref([]);
+
+        // Settings credentials changes
+        const settingsForm = reactive({
+          username: '',
+          oldPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        const isSettingsSaving = ref(false);
+
+        // Stats boxes models
+        const stats = reactive([
+          { title: 'Kehadiran Anak', value: '0%', sub: 'Memuat...', trend: 'neutral', icon: 'fa-user-check', colorClass: 'emerald-theme' },
+          { title: 'Tunggakan Tagihan', value: 'Rp 0', sub: 'Memuat...', trend: 'neutral', icon: 'fa-credit-card', colorClass: 'rose-theme' },
+          { title: 'Total Terbayar', value: 'Rp 0', sub: 'Memuat...', trend: 'neutral', icon: 'fa-receipt', colorClass: 'blue-theme' },
+          { title: 'Mata Pelajaran', value: '0 Mapel', sub: 'Memuat...', trend: 'neutral', icon: 'fa-book-bookmark', colorClass: 'purple-theme' }
+        ]);
+
+        const announcements = ref([
+          { title: 'Memuat Pengumuman...', desc: 'Menghubungkan ke Google Sheets...', time: '-', type: 'success' }
+        ]);
+
+        // Sidebar config for Parent role
+        const sidebarMenu = [
+          { label: 'Dashboard', id: 'dashboard', icon: 'fa-chart-pie', type: 'single' },
+          {
+            label: 'Akademik',
+            id: 'akademik',
+            icon: 'fa-school',
+            type: 'parent',
+            children: [
+              { label: 'Jadwal Belajar', id: 'jadwal-belajar' },
+              { label: 'Materi & Jurnal Belajar', id: 'materi-jurnal' },
+              { label: 'Presensi Kehadiran', id: 'presensi-kehadiran' }
+            ]
+          },
+          {
+            label: 'Keuangan',
+            id: 'keuangan',
+            icon: 'fa-wallet',
+            type: 'parent',
+            children: [
+              { label: 'Tagihan Pembayaran', id: 'tagihan-pembayaran' },
+              { label: 'Riwayat Pembayaran', id: 'riwayat-pembayaran' }
+            ]
+          }
+        ];
+
+        // Mappings helpers
+        const getMapelName = (id) => dbMapel.value.find(m => m.mapel_id === id)?.nama_mapel || id;
+        const getTeacherName = (id) => dbPegawai.value.find(p => p.pegawai_id === id)?.nama || id;
+        const getBillPosName = (posId) => dbPosBayar.value.find(b => b.pos_bayar_id === posId)?.nama_pos || posId;
+        
+        const getMapelNameFromJadwal = (jadwalId) => {
+          const j = dbJadwal.value.find(x => x.jadwal_id === jadwalId);
+          return j ? getMapelName(j.mapel_id) : '-';
+        };
+
+        // Computed filtering variables for the logged-in student
+        const studentProfile = computed(() => {
+          return dbSiswa.value.find(s => s.siswa_id === studentId.value) || {};
+        });
+
+        const mySchedules = computed(() => {
+          return dbJadwal.value.filter(j => j.kelompok_id === kelompokId.value);
+        });
+
+        // Compute today's learning schedules for the child
+        const todaySchedules = computed(() => {
+          if (!kelompokId.value) return [];
+          const daysMap = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+          const todayIndex = new Date().getDay();
+          const todayName = daysMap[todayIndex];
+          
+          return dbJadwal.value.filter(j => j.kelompok_id === kelompokId.value && j.hari === todayName);
+        });
+
+        // Helper to check if the teacher's presence has already been verified today for a schedule
+        const isTentorVerified = (jadwalId) => {
+          const todayDate = new Date().toLocaleDateString('sv-SE');
+          const found = dbPresensiPegawai.value.find(p => p.jadwal_id === jadwalId && p.tanggal === todayDate);
+          return found && found.status_kehadiran === 'Hadir';
+        };
+
+        // Method for parent to confirm the teacher is present
+        const confirmTentorPresence = async (sched) => {
+          const todayDate = new Date().toLocaleDateString('sv-SE');
+          
+          // Double-check if already verified
+          const existing = dbPresensiPegawai.value.find(p => p.jadwal_id === sched.jadwal_id && p.tanggal === todayDate);
+          if (existing && existing.status_kehadiran === 'Hadir') {
+            return;
+          }
+
+          const payload = {
+            pegawai_id: sched.pegawai_id,
+            jadwal_id: sched.jadwal_id,
+            tanggal: todayDate,
+            status_kehadiran: 'Hadir',
+            keterangan: `Dikonfirmasi hadir oleh Wali Murid (${userName.value})`
+          };
+
+          let action = 'create';
+          if (existing) {
+            action = 'update';
+            payload.presensi_pegawai_id = existing.presensi_pegawai_id;
+          }
+
+          Swal.fire({
+            title: 'Mengirim Konfirmasi...',
+            text: 'Menyimpan kehadiran Tentor ke Google Sheets',
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+
+          try {
+            await window.saveDatabaseRecord('PresensiPegawai', action, payload);
+            Swal.fire({
+              icon: 'success',
+              title: 'Kehadiran Dikonfirmasi',
+              text: `Tentor ${getTeacherName(sched.pegawai_id)} terkonfirmasi hadir.`,
+              timer: 2000,
+              showConfirmButton: false
+            });
+            await reloadAll();
+          } catch(err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal Mengonfirmasi',
+              text: err.message || 'Kesalahan sistem saat mengonfirmasi.',
+              confirmButtonColor: '#ef4444'
+            });
+          }
+        };
+
+        const myPresenceLogs = computed(() => {
+          return dbPresensiSiswa.value
+            .filter(p => p.siswa_id === studentId.value)
+            .sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+        });
+
+        const myMaterials = computed(() => {
+          const myJadwalIds = mySchedules.value.map(j => j.jadwal_id);
+          return dbJurnalMengajar.value
+            .filter(j => myJadwalIds.includes(j.jadwal_id))
+            .map(j => {
+              const schedule = dbJadwal.value.find(s => s.jadwal_id === j.jadwal_id) || {};
+              return {
+                ...j,
+                mapel_name: getMapelName(schedule.mapel_id),
+                teacher_name: getTeacherName(j.pegawai_id || schedule.pegawai_id)
+              };
+            })
+            .sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+        });
+
+        const myBills = computed(() => {
+          return dbPosBayar.value.filter(b => b.siswa_id === studentId.value);
+        });
+
+        const myPayments = computed(() => {
+          const myPosBayarIds = myBills.value.map(b => b.pos_bayar_id);
+          return dbKeuanganTrans.value
+            .filter(t => t.pos_bayar_id && myPosBayarIds.includes(t.pos_bayar_id))
+            .sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+        });
+
+        const getPresenceColor = (status) => {
+          if (status === 'Hadir') return { bg: 'rgba(16, 185, 129, 0.1)', fg: 'var(--color-emerald)' };
+          if (status === 'Izin') return { bg: 'rgba(59, 130, 246, 0.1)', fg: 'var(--color-blue)' };
+          if (status === 'Sakit') return { bg: 'rgba(245, 158, 11, 0.1)', fg: 'var(--color-amber)' };
+          return { bg: 'rgba(239, 68, 68, 0.1)', fg: 'var(--color-rose)' };
+        };
+
+        const avatarInitials = computed(() => {
+          if (!userName.value) return 'W';
+          const parts = userName.value.split(' ');
+          let init = '';
+          if (parts.length > 0) init += parts[0][0];
+          if (parts.length > 1) init += parts[1][0];
+          return init.toUpperCase();
+        });
+
+        // Terbilang converter for receipts (Indonesian language)
+        const terbilangString = computed(() => {
+          const num = selectedReceipt.nominal;
+          if (!num) return 'Nol';
+          
+          const words = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+          
+          function convert(n) {
+            if (n < 12) return words[n];
+            if (n < 20) return convert(n - 10) + " Belas";
+            if (n < 100) return convert(Math.floor(n / 10)) + " Puluh " + convert(n % 10);
+            if (n < 200) return "Seratus " + convert(n - 100);
+            if (n < 1000) return convert(Math.floor(n / 100)) + " Ratus " + convert(n % 100);
+            if (n < 2000) return "Seribu " + convert(n - 1000);
+            if (n < 1000000) return convert(Math.floor(n / 1000)) + " Ribu " + convert(n % 1000);
+            if (n < 1000000000) return convert(Math.floor(n / 1000000)) + " Juta " + convert(n % 1000000);
+            return "";
+          }
+          
+          return convert(num).trim().replace(/\s+/g, ' ');
+        });
+
+        // Receipt dialog handler
+        const openReceipt = (bill) => {
+          // Find transaction related to this pos_bayar_id
+          const tx = dbKeuanganTrans.value.find(t => t.pos_bayar_id === bill.pos_bayar_id);
+          
+          selectedReceipt.transaksi_id = tx ? tx.transaksi_id : `TX-${bill.pos_bayar_id}`;
+          selectedReceipt.tanggal_bayar = tx ? tx.tanggal : new Date().toISOString().substring(0,10);
+          selectedReceipt.nama_pos = bill.nama_pos;
+          selectedReceipt.nominal = parseFloat(bill.nominal_tarif) || 0;
+          selectedReceipt.metode_pembayaran = tx ? tx.metode_pembayaran : 'Kas Tunai';
+          selectedReceipt.keterangan = bill.keterangan || '';
+          
+          isReceiptModalOpen.value = true;
+        };
+
+        const printReceipt = () => {
+          window.print();
+        };
+
+        // Session validation onMounted
+        onMounted(() => {
+          const rawUser = sessionStorage.getItem('user');
+          if (!rawUser) {
+            window.location.href = './index.html';
+            return;
+          }
+          const user = JSON.parse(rawUser);
+          if (user.role !== 'parent') {
+            window.location.href = './index.html';
+            return;
+          }
+
+          userName.value = user.display_name;
+          studentId.value = user.linked_id || '';
+          settingsForm.username = user.username;
+
+          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+          const today = new Date();
+          systemDateString.value = today.toLocaleDateString('id-ID', options);
+
+          nextTick(async () => {
+            renderCharts();
+            mapDatabaseCache();
+            await reloadAll();
+          });
+        });
+
+        // Read cache into models
+        const mapDatabaseCache = () => {
+          dbSiswa.value = window.getRoleData("Siswa");
+          dbPresensiSiswa.value = window.getRoleData("PresensiSiswa");
+          dbPresensiPegawai.value = window.getRoleData("PresensiPegawai");
+          dbPosBayar.value = window.getRoleData("PosBayar");
+          dbPengumuman.value = window.getRoleData("Pengumuman");
+          dbJadwal.value = window.getRoleData("Jadwal");
+          dbMapel.value = window.getRoleData("Mapel");
+          dbKelompok.value = window.getRoleData("KelompokBelajar");
+          dbPegawai.value = window.getRoleData("Pegawai");
+          dbJurnalMengajar.value = window.getRoleData("JurnalMengajar");
+          dbKeuanganTrans.value = window.getRoleData("KeuanganTrans");
+          dbUsers.value = window.getRoleData("Users");
+
+          loadParentDashboardData();
+        };
+
+        const loadParentDashboardData = () => {
+          if (!studentId.value) return;
+
+          try {
+            // Find Student details
+            const currentStudent = dbSiswa.value.find(s => s.siswa_id === studentId.value);
+            if (currentStudent) {
+              studentName.value = currentStudent.nama;
+              kelompokId.value = currentStudent.kelompok_id;
+              
+              const group = dbKelompok.value.find(k => k.kelompok_id === currentStudent.kelompok_id);
+              kelompokName.value = group ? group.nama_kelompok : currentStudent.kelompok_id;
+            }
+
+            // 1. KPI - Kehadiran Anak
+            const pres = myPresenceLogs.value;
+            const totalSesi = pres.length;
+            const totalHadir = pres.filter(p => p.status_kehadiran === 'Hadir').length;
+            const totalIzin = pres.filter(p => p.status_kehadiran === 'Izin').length;
+            const totalSakit = pres.filter(p => p.status_kehadiran === 'Sakit').length;
+            const totalAlpa = pres.filter(p => p.status_kehadiran === 'Alpa').length;
+
+            const rate = totalSesi > 0 ? ((totalHadir / totalSesi) * 100).toFixed(1) : '100';
+            stats[0].value = `${rate}%`;
+            stats[0].sub = `Total Sesi: ${totalSesi} kelas`;
+            stats[0].trend = parseFloat(rate) >= 80 ? 'positive' : 'negative';
+
+            // 2. KPI - Tunggakan Tagihan (Belum Lunas)
+            const bills = myBills.value;
+            const totalTunggakan = bills
+              .filter(b => b.status_bayar === 'Belum Lunas')
+              .reduce((sum, b) => sum + (parseFloat(b.nominal_tarif) || 0), 0);
+            
+            stats[1].value = 'Rp ' + totalTunggakan.toLocaleString('id-ID');
+            stats[1].sub = `${bills.filter(b => b.status_bayar === 'Belum Lunas').length} pos belum dibayar`;
+            stats[1].trend = totalTunggakan > 0 ? 'negative' : 'neutral';
+
+            // 3. KPI - Total Terbayar (Lunas)
+            const totalLunas = bills
+              .filter(b => b.status_bayar === 'Lunas')
+              .reduce((sum, b) => sum + (parseFloat(b.nominal_tarif) || 0), 0);
+
+            stats[2].value = 'Rp ' + totalLunas.toLocaleString('id-ID');
+            stats[2].sub = `${bills.filter(b => b.status_bayar === 'Lunas').length} pos lunas`;
+
+            // 4. KPI - Mata Pelajaran
+            const scheds = mySchedules.value;
+            stats[3].value = `${scheds.length} Mapel`;
+            stats[3].sub = `Mingguan di kelas`;
+
+            // 5. Update Presence Chart (Doughnut)
+            if (presenceChartInstance) {
+              if (totalSesi > 0) {
+                presenceChartInstance.data.datasets[0].data = [totalHadir, totalIzin, totalSakit, totalAlpa];
+              } else {
+                presenceChartInstance.data.datasets[0].data = [1, 0, 0, 0]; // Default mock data
+              }
+              presenceChartInstance.update();
+            }
+
+            // 6. Update Finance Chart (Doughnut/Pie)
+            const countLunas = bills.filter(b => b.status_bayar === 'Lunas').length;
+            const countBelum = bills.filter(b => b.status_bayar === 'Belum Lunas').length;
+            if (invoiceChartInstance) {
+              if (countLunas + countBelum > 0) {
+                invoiceChartInstance.data.datasets[0].data = [countLunas, countBelum];
+              } else {
+                invoiceChartInstance.data.datasets[0].data = [1, 0];
+              }
+              invoiceChartInstance.update();
+            }
+
+            // 7. Announcements list
+            const filteredPgm = dbPengumuman.value.filter(p => p.target_role === 'Parent' || p.target_role === 'All' || !p.target_role);
+            announcements.value = filteredPgm.map(p => ({
+              title: p.judul,
+              desc: p.konten,
+              time: p.tanggal_kirim ? new Date(p.tanggal_kirim).toLocaleDateString('id-ID') : 'Baru saja',
+              type: p.judul.includes('Penting') || p.judul.includes('Ujian') ? 'danger' : 'success'
+            }));
+
+            if (announcements.value.length === 0) {
+              announcements.value = [{
+                title: "Belum Ada Pengumuman",
+                desc: "Tidak ada pengumuman untuk Wali Murid yang tersimpan.",
+                time: "-",
+                type: "success"
+              }];
+            }
+
+          } catch (err) {
+            console.error("Gagal memproses data parent dashboard:", err);
+          }
+        };
+
+        const reloadAll = async () => {
+          const rawUser = sessionStorage.getItem('user');
+          if (rawUser) {
+            try {
+              const user = JSON.parse(rawUser);
+              await window.fetchRoleData(user);
+              mapDatabaseCache();
+            } catch(e) {
+              console.error(e);
+            }
+          }
+        };
+
+        // Change Credentials Settings Form Handler
+        const handleChangeCredentials = async () => {
+          if (settingsForm.newPassword !== settingsForm.confirmPassword) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Sandi Baru Tidak Cocok',
+              text: 'Konfirmasi password baru yang Anda masukkan tidak sesuai.',
+              confirmButtonColor: '#2563eb'
+            });
+            return;
+          }
+
+          isSettingsSaving.value = true;
+          try {
+            const rawUser = sessionStorage.getItem('user');
+            const currentUser = JSON.parse(rawUser);
+
+            const oldHash = await window.sha256Hash(settingsForm.oldPassword);
+            const newHash = await window.sha256Hash(settingsForm.newPassword);
+
+            const response = await fetch(window.GAS_URL, {
+              method: 'POST',
+              mode: 'cors',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({
+                action: 'change_password',
+                user_id: currentUser.user_id,
+                old_password_hash: oldHash,
+                new_password_hash: newHash,
+                new_username: settingsForm.username
+              })
+            });
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+              Swal.fire({
+                icon: 'success',
+                title: 'Akun Berhasil Diubah',
+                text: 'Username dan sandi Anda telah diperbarui. Silakan masuk kembali.',
+                confirmButtonColor: '#2563eb'
+              }).then(() => {
+                sessionStorage.clear();
+                window.location.href = './index.html';
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal Mengubah Sandi',
+                text: result.message || 'Password lama yang Anda masukkan salah.',
+                confirmButtonColor: '#ef4444'
+              });
+            }
+
+          } catch(err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: err.message || 'Gagal mengubah sandi akun.',
+              confirmButtonColor: '#ef4444'
+            });
+          } finally {
+            isSettingsSaving.value = false;
+          }
+        };
+
+        // Navigation helpers
+        const menuIcons = {
+          'jadwal-belajar': 'fa-calendar-week',
+          'materi-jurnal': 'fa-book-open',
+          'presensi-kehadiran': 'fa-clipboard-user',
+          'tagihan-pembayaran': 'fa-file-invoice-dollar',
+          'riwayat-pembayaran': 'fa-receipt',
+          'pengaturan': 'fa-sliders'
+        };
+
+        const pageTitle = computed(() => {
+          if (activePage.value === 'dashboard') return 'Dashboard';
+          return activeParentLabel.value ? `${activeParentLabel.value} \u203A ${activePageLabel.value}` : activePageLabel.value;
+        });
+
+        const openSidebar = () => {
+          if (sidebarRef.value) sidebarRef.value.toggleSidebar(true);
+        };
+
+        const handleNavigate = (event) => {
+          navigateTo(event.id, event.label, event.parentLabel);
+        };
+
+        const navigateTo = (pageId, label, parentLabel = '') => {
+          activePage.value = pageId;
+          activePageLabel.value = label;
+          activeParentLabel.value = parentLabel;
+        };
+
+        const handleLogout = () => {
+          sessionStorage.clear();
+          window.location.href = './index.html';
+        };
+
+        const renderCharts = () => {
+          const presenceCtx = document.getElementById('presenceChart').getContext('2d');
+          const invoiceCtx = document.getElementById('invoiceChart').getContext('2d');
+
+          presenceChartInstance = new Chart(presenceCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
+              datasets: [{
+                data: [0, 0, 0, 0],
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { font: { family: 'Outfit', size: 11 } } } }
+            }
+          });
+
+          invoiceChartInstance = new Chart(invoiceCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Lunas', 'Belum Lunas'],
+              datasets: [{
+                data: [0, 0],
+                backgroundColor: ['#10b981', '#ef4444'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { font: { family: 'Outfit', size: 11 } } } }
+            }
+          });
+        };
+
+        return {
+          todaySchedules,
+          isTentorVerified,
+          confirmTentorPresence,
+          sidebarRef,
+          userName,
+          activePage,
+          activePageLabel,
+          activeParentLabel,
+          systemDateString,
+          studentId,
+          studentName,
+          kelompokId,
+          kelompokName,
+          stats,
+          announcements,
+          sidebarMenu,
+          pageTitle,
+          openSidebar,
+          handleNavigate,
+          navigateTo,
+          handleLogout,
+          reloadAll,
+          
+          // Mappings & database
+          getMapelName,
+          getTeacherName,
+          getBillPosName,
+          getMapelNameFromJadwal,
+          studentProfile,
+          mySchedules,
+          myPresenceLogs,
+          myMaterials,
+          myBills,
+          myPayments,
+          getPresenceColor,
+          avatarInitials,
+          terbilangString,
+
+          // printable receipt states & functions
+          isReceiptModalOpen,
+          selectedReceipt,
+          openReceipt,
+          printReceipt,
+
+          // Settings Change Form
+          settingsForm,
+          isSettingsSaving,
+          handleChangeCredentials
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

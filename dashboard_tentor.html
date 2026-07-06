@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Tentor - AntsGo Academy</title>
+  
+  <!-- Font Outfit & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Shared Style Sheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Shared Client-Side Database & GAS CONFIG -->
+  <script src="data.js"></script>
+
+  <!-- Chart.js & Vue.js 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  
+  <!-- Shared Vue Components -->
+  <script src="components.js"></script>
+</head>
+<body>
+
+  <div id="app" class="app-container">
+    
+    <!-- Shared Sidebar Navigation Component -->
+    <app-sidebar
+      ref="sidebarRef"
+      :active-page="activePage"
+      :sidebar-menu="sidebarMenu"
+      role-text="Tentor / Guru"
+      avatar-initials="TG"
+      @navigate="handleNavigate"
+      @logout="handleLogout"
+    ></app-sidebar>
+
+    <!-- MAIN CONTENT WRAPPER -->
+    <main class="main-wrapper">
+      
+      <!-- Shared Header Nav Component -->
+      <app-header
+        :page-title="pageTitle"
+        :system-date-string="systemDateString"
+        :user-name="userName"
+        role-text="Tenaga Pengajar"
+        avatar-initials="TG"
+        @toggle-sidebar="openSidebar"
+        @navigate-settings="navigateTo('pengaturan', 'Pengaturan')"
+        @logout="handleLogout"
+      ></app-header>
+
+      <!-- Content Body -->
+      <section class="content-body">
+        
+        <!-- ========================================== -->
+        <!-- 1. DASHBOARD OVERVIEW SECTION -->
+        <!-- ========================================== -->
+        <div class="page-section" :class="{ active: activePage === 'dashboard' }">
+          
+          <!-- KPI Statistics Cards -->
+          <div class="stats-grid">
+            <div v-for="(card, index) in stats" :key="index" class="stat-card" :class="card.colorClass">
+              <div class="stat-details">
+                <span class="stat-title">{{ card.title }}</span>
+                <span class="stat-value">{{ card.value }}</span>
+                <span class="stat-trend" :class="card.trend">
+                  <i class="fa-solid fa-arrow-trend-up" v-if="card.trend === 'up'"></i>
+                  <i class="fa-solid fa-arrow-trend-down" v-if="card.trend === 'down'"></i>
+                  {{ card.sub }}
+                </span>
+              </div>
+              <div class="stat-icon-wrapper">
+                <i class="fa-solid" :class="card.icon"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="dashboard-row">
+            <div class="content-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Statistik Mengajar Anda
+                  </h3>
+                  <p class="card-subtitle">Realisasi Sesi Hadir Mengajar (Jan - Jun 2026)</p>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="mainDashboardChart"></canvas>
+              </div>
+            </div>
+
+            <div class="content-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-square-poll-vertical"></i>
+                    Presensi Siswa Diajar
+                  </h3>
+                  <p class="card-subtitle">Statistik rekapitulasi kehadiran siswa di rombel ajar Anda</p>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="secondaryDashboardChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Panels: Announcements & Teacher Info -->
+          <div class="dashboard-row" style="grid-template-columns: 1.5fr 1fr;">
+            <!-- Announcements -->
+            <div class="content-card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-bullhorn"></i>
+                  Pengumuman Terbaru
+                </h3>
+                <span class="placeholder-badge">Untuk Tentor</span>
+              </div>
+              <div class="announcement-list">
+                <div v-for="(ann, idx) in announcements" :key="idx" class="announcement-item" :class="ann.type">
+                  <div class="announce-meta">
+                    <span class="placeholder-badge" style="padding: 1px 6px; font-size: 10px;">Info</span>
+                    <span>{{ ann.time }}</span>
+                  </div>
+                  <h4 class="announce-title">{{ ann.title }}</h4>
+                  <p class="announce-desc">{{ ann.desc }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Teacher Info Sheet -->
+            <div class="content-card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+              <div>
+                <div class="card-header" style="margin-bottom: 12px;">
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Instruksi Pengisian Jurnal
+                  </h3>
+                </div>
+                <p class="announce-desc" style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+                  Sesuai aturan operasional AntsGo Academy, mohon mencatat presensi siswa dan jurnal pembahasan kelas selambat-lambatnya **1 jam** setelah kelas berakhir demi keakuratan laporan wali murid.
+                </p>
+                <div style="background-color: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
+                  <div><strong>ID Pegawai:</strong> {{ teacherId }}</div>
+                  <div><strong>Gaji per Sesi:</strong> Rp {{ salaryPerSession.toLocaleString('id-ID') }}</div>
+                </div>
+              </div>
+              <div>
+                <button class="btn-flat btn-navy" style="width: 100%; justify-content: center; height: 40px;" @click="navigateTo('presensi-jurnal', 'Presensi Siswa & Jurnal', 'Akademik')">
+                  <i class="fa-solid fa-square-plus"></i> Isi Jurnal Mengajar Sekarang
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 2. KEPEGAWAIAN (READ-ONLY) -->
+        <!-- ========================================== -->
+        <!-- Lihat Profil Pribadi -->
+        <div class="page-section" :class="{ active: activePage === 'data-pegawai' }">
+          <div class="content-card" style="max-width: 600px; margin: 0 auto;">
+            <div class="card-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 16px; margin-bottom: 20px;">
+              <h3 class="card-title"><i class="fa-solid fa-address-card"></i> Profil Pribadi Tentor</h3>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <div v-for="item in myProfileInfo" :key="item.label" style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--color-border); padding-bottom: 8px; font-size: 13.5px;">
+                <span style="font-weight: 600; color: var(--text-muted);">{{ item.label }}</span>
+                <span style="color: var(--text-main); font-weight: 600;">{{ item.value }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Riwayat Presensi Kehadiran Pegawai -->
+        <div class="page-section" :class="{ active: activePage === 'presensi-pegawai' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-clipboard-user"></i> Riwayat Kehadiran Anda</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Berikut rekapitulasi data kehadiran mengajar Anda yang diinput oleh Pengelola atau dikonfirmasi Wali Murid.</p>
+            <div class="table-responsive-wrapper">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 700px;">
+                <thead>
+                  <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
+                    <th style="padding: 12px 16px; font-weight: 600; width: 180px;">Tanggal</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Sesi / Mapel</th>
+                    <th style="padding: 12px 16px; font-weight: 600; text-align: center; width: 120px;">Status</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="myPresenceLogs.length === 0">
+                    <td colspan="4" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                      Tidak ada riwayat kehadiran mengajar terdaftar.
+                    </td>
+                  </tr>
+                  <tr v-for="log in myPresenceLogs" :key="log.presensi_pegawai_id">
+                    <td style="padding: 12px 16px; font-weight: 600;">{{ new Date(log.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</td>
+                    <td style="padding: 12px 16px; font-weight: 500;">{{ getSessionDetails(log.jadwal_id) }}</td>
+                    <td style="padding: 12px 16px; text-align: center;">
+                      <span :style="{
+                        backgroundColor: log.status_kehadiran === 'Hadir' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: log.status_kehadiran === 'Hadir' ? 'var(--color-emerald)' : 'var(--color-rose)',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontWeight: '700',
+                        fontSize: '12px'
+                      }">{{ log.status_kehadiran }}</span>
+                    </td>
+                    <td style="padding: 12px 16px; color: var(--text-muted);">{{ log.keterangan || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 3. AKADEMIK PAGES -->
+        <!-- ========================================== -->
+        <!-- Jadwal Mengajar Pribadi -->
+        <div class="page-section" :class="{ active: activePage === 'jadwal-mengajar' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-calendar-week"></i> Jadwal Mengajar Pribadi</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Daftar kelas aktif yang Anda ajar pada semester berjalan.</p>
+            <div class="table-responsive-wrapper">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 800px;">
+                <thead>
+                  <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
+                    <th style="padding: 12px 16px; font-weight: 600; width: 140px;">Hari</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 160px;">Waktu</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Kelompok Belajar</th>
+                    <th style="padding: 12px 16px; font-weight: 600;">Mata Pelajaran</th>
+                    <th style="padding: 12px 16px; font-weight: 600; width: 140px;">Ruangan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="mySchedules.length === 0">
+                    <td colspan="5" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                      Tidak ada jadwal mengajar terdaftar.
+                    </td>
+                  </tr>
+                  <tr v-for="j in mySchedules" :key="j.jadwal_id">
+                    <td style="padding: 12px 16px; font-weight: 700;">{{ j.hari }}</td>
+                    <td style="padding: 12px 16px;">{{ j.jam_mulai }} - {{ j.jam_selesai }}</td>
+                    <td style="padding: 12px 16px; font-weight: 600;">{{ getKelompokName(j.kelompok_id) }}</td>
+                    <td style="padding: 12px 16px;">{{ getMapelName(j.mapel_id) }}</td>
+                    <td style="padding: 12px 16px; color: var(--text-muted);">{{ j.ruangan || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Presensi Siswa & Jurnal Mengajar -->
+        <div class="page-section" :class="{ active: activePage === 'presensi-jurnal' }">
+          <div class="content-card">
+            
+            <!-- Step 1: Session Selector -->
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; border-bottom: 1px solid var(--color-border); padding-bottom: 20px;">
+              <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 13.5px; font-weight: 600;">Pilih Kelas / Jadwal Anda:</label>
+                <select v-model="selectedJadwalId" @change="loadClassSessionData" class="form-input" style="height: 40px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white; cursor: pointer; outline: none;">
+                  <option value="" disabled>Pilih Jadwal Mengajar</option>
+                  <option v-for="j in mySchedules" :key="j.jadwal_id" :value="j.jadwal_id">
+                    {{ getKelompokName(j.kelompok_id) }} - {{ getMapelName(j.mapel_id) }} ({{ j.hari }}, {{ j.jam_mulai }}-{{ j.jam_selesai }})
+                  </option>
+                </select>
+              </div>
+              <div style="width: 200px; display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 13.5px; font-weight: 600;">Tanggal Kelas:</label>
+                <input type="date" v-model="selectedClassDate" @change="loadClassSessionData" class="form-input" style="height: 40px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white; cursor: pointer; outline: none;" />
+              </div>
+            </div>
+
+            <!-- Jurnal & Student Presence Grid Form -->
+            <div v-if="selectedJadwalId">
+              
+              <!-- Section A: Jurnal Mengajar -->
+              <div style="margin-bottom: 28px;">
+                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-book-open" style="color: var(--color-primary);"></i>
+                  Jurnal Pembahasan Kelas
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 600;">Materi Pembahasan <span style="color: var(--color-rose);">*</span></label>
+                    <input type="text" v-model="jurnalMateri" placeholder="Contoh: Pembagian Aljabar, Trigonometri Dasar" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; outline: none; background: white;" />
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 600;">Catatan / Evaluasi Belajar</label>
+                    <textarea v-model="jurnalCatatan" placeholder="Contoh: Siswa aktif, Rian butuh perhatian khusus pada rumus perkalian." style="padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; outline: none; height: 80px; resize: none; background: white;"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section B: Presensi Kehadiran Siswa -->
+              <div style="margin-bottom: 28px;">
+                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-users-rectangle" style="color: var(--color-primary);"></i>
+                  Presensi Kehadiran Siswa
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <div v-if="studentsInClass.length === 0" style="padding: 24px; text-align: center; color: var(--text-muted); background-color: var(--color-bg-light); border-radius: 8px;">
+                    Tidak ada siswa terdaftar pada kelompok belajar ini.
+                  </div>
+                  
+                  <div v-for="std in studentsInClass" :key="std.siswa_id" style="background-color: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                      <h5 style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">{{ std.nama }}</h5>
+                      <p style="font-size: 11.5px; color: var(--text-muted);">{{ std.siswa_id }} &bull; Wali: {{ std.nama_orang_tua }}</p>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                      <!-- Presence Options -->
+                      <div style="display: flex; gap: 12px;">
+                        <label style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer; font-weight: 500;">
+                          <input type="radio" :name="'s_status_' + std.siswa_id" value="Hadir" v-model="studentPresensiMap[std.siswa_id]" style="cursor: pointer;" /> Hadir
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer; font-weight: 500;">
+                          <input type="radio" :name="'s_status_' + std.siswa_id" value="Izin" v-model="studentPresensiMap[std.siswa_id]" style="cursor: pointer;" /> Izin
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer; font-weight: 500;">
+                          <input type="radio" :name="'s_status_' + std.siswa_id" value="Sakit" v-model="studentPresensiMap[std.siswa_id]" style="cursor: pointer;" /> Sakit
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer; font-weight: 500;">
+                          <input type="radio" :name="'s_status_' + std.siswa_id" value="Alpa" v-model="studentPresensiMap[std.siswa_id]" style="cursor: pointer;" /> Alpa
+                        </label>
+                      </div>
+                      
+                      <!-- Notes -->
+                      <input type="text" placeholder="Keterangan/Notes..." v-model="studentPresensiNotesMap[std.siswa_id]" style="height: 34px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 12.5px; width: 180px; outline: none; background: white;" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Submit Action Button -->
+              <button class="btn-flat btn-navy" style="width: 100%; justify-content: center; height: 42px;" @click="saveJurnalAndPresensiSiswa">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Simpan Jurnal & Presensi Siswa
+              </button>
+
+            </div>
+
+            <!-- Select schedule prompt info -->
+            <div v-else style="padding: 48px; text-align: center; color: var(--text-muted);">
+              <i class="fa-solid fa-chalkboard-user" style="font-size: 38px; margin-bottom: 12px; color: var(--color-border);"></i>
+              <h4>Pilih Jadwal Kelas & Tanggal</h4>
+              <p style="font-size: 13px; margin-top: 4px;">Pilih salah satu jadwal mengajar aktif Anda di atas untuk mulai mengisi jurnal pembahasan kelas dan presensi siswa.</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Pengajuan Reschedule Jadwal Mengajar -->
+        <div class="page-section" :class="{ active: activePage === 'reschedule-jadwal' }">
+          <app-crud-manager
+            sheet-name="RescheduleJadwal"
+            sheet-label="Pengajuan Reschedule"
+            :schema="schemaRescheduleTentor"
+            :data-list="filteredReschedules"
+            @refresh="reloadAll"
+          ></app-crud-manager>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 4. PENGATURAN (CHANGE CREDENTIALS) -->
+        <!-- ========================================== -->
+        <div class="page-section" :class="{ active: activePage === 'pengaturan' }">
+          <div class="content-card" style="max-width: 500px; margin: 0 auto;">
+            <div class="card-header" style="margin-bottom: 20px;">
+              <h3 class="card-title"><i class="fa-solid fa-key"></i> Ubah Username & Password Akun</h3>
+            </div>
+            
+            <form @submit.prevent="handleChangeCredentials">
+              <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Username Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="text" v-model="settingsForm.username" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Password Lama <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.oldPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Password Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.newPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 13px; font-weight: 600;">Konfirmasi Password Baru <span style="color: var(--color-rose);">*</span></label>
+                  <input type="password" v-model="settingsForm.confirmPassword" required class="form-input" style="height: 38px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13.5px; background: white;" />
+                </div>
+              </div>
+
+              <button type="submit" class="btn-flat" style="width: 100%; justify-content: center; height: 40px;" :disabled="isSettingsSaving">
+                <span v-if="isSettingsSaving">Menyimpan Perubahan... <i class="fa-solid fa-spinner fa-spin"></i></span>
+                <span v-else><i class="fa-solid fa-save"></i> Simpan Perubahan</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, computed, onMounted, nextTick } = Vue;
+
+    createApp({
+      components: {
+        'app-sidebar': window.SidebarComponent,
+        'app-header': window.HeaderComponent,
+        'app-placeholder': window.PlaceholderComponent,
+        'app-crud-manager': window.CrudManagerComponent
+      },
+      setup() {
+        const sidebarRef = ref(null);
+        const userName = ref('Fahmi Hidayat');
+        const activePage = ref('dashboard');
+        const activePageLabel = ref('Dashboard');
+        const activeParentLabel = ref('');
+        const systemDateString = ref('');
+        const teacherId = ref('');
+        const salaryPerSession = ref(0);
+
+        // Custom Presensi & Jurnal Mengajar Form Models
+        const selectedJadwalId = ref('');
+        const selectedClassDate = ref(new Date().toLocaleDateString('sv-SE'));
+        const jurnalMateri = ref('');
+        const jurnalCatatan = ref('');
+        const studentPresensiMap = reactive({});
+        const studentPresensiNotesMap = reactive({});
+
+        let mainChart = null;
+        let secondaryChart = null;
+
+        // Reactive database caches
+        const dbPegawai = ref([]);
+        const dbJadwal = ref([]);
+        const dbPresensiPegawai = ref([]);
+        const dbPresensiSiswa = ref([]);
+        const dbPengumuman = ref([]);
+        const dbSiswa = ref([]);
+        const dbKelompok = ref([]);
+        const dbMapel = ref([]);
+        const dbJurnalMengajar = ref([]);
+        const dbRescheduleJadwal = ref([]);
+        const dbUsers = ref([]);
+
+        // Settings credentials changes
+        const settingsForm = reactive({
+          username: '',
+          oldPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        const isSettingsSaving = ref(false);
+
+        // Stats boxes models
+        const stats = reactive([
+          { title: 'Kelas Diajar', value: '0 Kelas', sub: 'Memuat...', trend: 'neutral', icon: 'fa-chalkboard', colorClass: 'blue-theme' },
+          { title: 'Jam Mengajar', value: '0 Jam', sub: 'Memuat...', trend: 'neutral', icon: 'fa-clock', colorClass: 'purple-theme' },
+          { title: 'Presensi Anda', value: '0%', sub: 'Memuat...', trend: 'neutral', icon: 'fa-user-check', colorClass: 'emerald-theme' },
+          { title: 'Estimasi Honor', value: 'Rp 0', sub: 'Memuat...', trend: 'neutral', icon: 'fa-hand-holding-dollar', colorClass: 'amber-theme' }
+        ]);
+
+        const announcements = ref([
+          { title: 'Memuat Pengumuman...', desc: 'Menghubungkan ke Google Sheets...', time: '-', type: 'success' }
+        ]);
+
+        // Sidebar config
+        const sidebarMenu = [
+          { label: 'Dashboard', id: 'dashboard', icon: 'fa-chart-pie', type: 'single' },
+          {
+            label: 'Kepegawaian',
+            id: 'kepegawaian',
+            icon: 'fa-briefcase',
+            type: 'parent',
+            children: [
+              { label: 'Lihat Profil Pribadi', id: 'data-pegawai' },
+              { label: 'Presensi Kehadiran', id: 'presensi-pegawai' }
+            ]
+          },
+          {
+            label: 'Akademik',
+            id: 'akademik',
+            icon: 'fa-school',
+            type: 'parent',
+            children: [
+              { label: 'Jadwal Mengajar Pribadi', id: 'jadwal-mengajar' },
+              { label: 'Presensi Siswa & Jurnal', id: 'presensi-jurnal' },
+              { label: 'Reschedule Jadwal', id: 'reschedule-jadwal' }
+            ]
+          }
+        ];
+
+        // Mappings helpers for selects
+        const getKelompokName = (id) => dbKelompok.value.find(k => k.kelompok_id === id)?.nama_kelompok || id;
+        const getMapelName = (id) => dbMapel.value.find(m => m.mapel_id === id)?.nama_mapel || id;
+        const getSessionDetails = (jadwalId) => {
+          const j = dbJadwal.value.find(x => x.jadwal_id === jadwalId);
+          if (!j) return '-';
+          const klm = getKelompokName(j.kelompok_id);
+          const mpl = getMapelName(j.mapel_id);
+          return `${mpl} (${klm})`;
+        };
+
+        const mySchedules = computed(() => {
+          return dbJadwal.value.filter(j => j.pegawai_id === teacherId.value);
+        });
+
+        const myPresenceLogs = computed(() => {
+          return dbPresensiPegawai.value.filter(p => p.pegawai_id === teacherId.value).sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+        });
+
+        const myProfileInfo = computed(() => {
+          const me = dbPegawai.value.find(p => p.pegawai_id === teacherId.value);
+          if (!me) return [];
+          const jListName = window.getRoleData ? (window.getRoleData("Jabatan") || []) : [];
+          const jName = jListName.find(j => j.jabatan_id === me.jabatan_id)?.nama_jabatan || me.jabatan_id;
+          return [
+            { label: 'ID Pegawai', value: me.pegawai_id },
+            { label: 'Nama Lengkap', value: me.nama },
+            { label: 'Tempat, Tanggal Lahir', value: `${me.tempat_lahir}, ${me.tanggal_lahir ? new Date(me.tanggal_lahir).toLocaleDateString('id-ID') : '-'}` },
+            { label: 'Alamat Tinggal', value: me.alamat },
+            { label: 'Jabatan / Peran', value: jName },
+            { label: 'Email', value: me.email },
+            { label: 'Gaji Per Sesi Selesai', value: `Rp ${parseFloat(me.gaji_per_sesi).toLocaleString('id-ID')}` },
+            { label: 'Status Keaktifan', value: me.status }
+          ];
+        });
+
+        const studentsInClass = computed(() => {
+          if (!selectedJadwalId.value) return [];
+          const sched = dbJadwal.value.find(j => j.jadwal_id === selectedJadwalId.value);
+          if (!sched) return [];
+          return dbSiswa.value.filter(s => s.kelompok_id === sched.kelompok_id);
+        });
+
+        const filteredReschedules = computed(() => {
+          const myJadwalIds = mySchedules.value.map(j => j.jadwal_id);
+          return dbRescheduleJadwal.value.filter(r => myJadwalIds.includes(r.jadwal_id));
+        });
+
+        const listJadwalOptions = computed(() => {
+          return mySchedules.value.map(j => {
+            const klm = getKelompokName(j.kelompok_id);
+            const mpl = getMapelName(j.mapel_id);
+            return { value: j.jadwal_id, label: `${klm} - ${mpl} (${j.hari}, ${j.jam_mulai}-${j.jam_selesai})` };
+          });
+        });
+
+        // Reschedule Schema for Tentor Requests
+        const schemaRescheduleTentor = [
+          { name: 'reschedule_id', label: 'ID Reschedule', type: 'text' },
+          { name: 'jadwal_id', label: 'Pilih Jadwal Mengajar', type: 'select', required: true, options: () => listJadwalOptions.value },
+          { name: 'tanggal_original', label: 'Tanggal Asal', type: 'date', required: true },
+          { name: 'tanggal_baru', label: 'Tanggal Baru', type: 'date', required: true },
+          { name: 'jam_mulai_baru', label: 'Jam Mulai Baru', type: 'time', required: true },
+          { name: 'jam_selesai_baru', label: 'Jam Selesai Baru', type: 'time', required: true },
+          { name: 'alasan', label: 'Alasan Reschedule', type: 'textarea', required: true },
+          { name: 'status', label: 'Status Persetujuan', type: 'text', defaultValue: 'Diajukan', disabled: true }
+        ];
+
+        // Session validation onMounted
+        onMounted(() => {
+          const rawUser = sessionStorage.getItem('user');
+          if (!rawUser) {
+            window.location.href = './index.html';
+            return;
+          }
+          const user = JSON.parse(rawUser);
+          if (user.role !== 'tentor') {
+            window.location.href = './index.html';
+            return;
+          }
+          userName.value = user.display_name;
+          teacherId.value = user.linked_id || '';
+
+          // Prepopulate settings username
+          settingsForm.username = user.username;
+
+          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+          const today = new Date();
+          systemDateString.value = today.toLocaleDateString('id-ID', options);
+
+          nextTick(async () => {
+            renderCharts();
+            mapDatabaseCache();
+            await reloadAll();
+          });
+        });
+
+        // Read cache into models
+        const mapDatabaseCache = () => {
+          dbPegawai.value = window.getRoleData("Pegawai");
+          dbJadwal.value = window.getRoleData("Jadwal");
+          dbPresensiPegawai.value = window.getRoleData("PresensiPegawai");
+          dbPresensiSiswa.value = window.getRoleData("PresensiSiswa");
+          dbPengumuman.value = window.getRoleData("Pengumuman");
+          dbSiswa.value = window.getRoleData("Siswa");
+          dbKelompok.value = window.getRoleData("KelompokBelajar");
+          dbMapel.value = window.getRoleData("Mapel");
+          dbJurnalMengajar.value = window.getRoleData("JurnalMengajar");
+          dbRescheduleJadwal.value = window.getRoleData("RescheduleJadwal");
+          dbUsers.value = window.getRoleData("Users");
+
+          loadTentorDashboardData();
+          loadClassSessionData();
+        };
+
+        const loadTentorDashboardData = () => {
+          if (!teacherId.value) return;
+
+          try {
+            // 1. Gaji rate
+            const me = dbPegawai.value.find(p => p.pegawai_id === teacherId.value);
+            if (me) {
+              salaryPerSession.value = parseFloat(me.gaji_per_sesi) || 0;
+            }
+
+            // 2. Schedules
+            const myJads = mySchedules.value;
+            const uniqueClasses = [...new Set(myJads.map(j => j.kelompok_id))];
+            stats[0].value = `${uniqueClasses.length} Kelas`;
+            stats[0].sub = `Total rombel aktif`;
+
+            // 3. Employee presence
+            const myPres = myPresenceLogs.value;
+            const totalSesi = myPres.length;
+            const totalHadir = myPres.filter(p => p.status_kehadiran === 'Hadir').length;
+            
+            stats[1].value = `${totalSesi * 1.5} Jam`;
+            stats[1].sub = `${totalSesi} sesi mengajar`;
+
+            const presenceRate = totalSesi > 0 ? ((totalHadir / totalSesi) * 100).toFixed(1) : '100';
+            stats[2].value = `${presenceRate}%`;
+            stats[2].sub = `Kehadiran: ${totalHadir}/${totalSesi}`;
+
+            const estimasiHonor = totalHadir * salaryPerSession.value;
+            stats[3].value = 'Rp ' + estimasiHonor.toLocaleString('id-ID');
+            stats[3].sub = 'Berdasarkan kelas hadir';
+
+            // 4. Chart Line data (Realisasi)
+            const realisasiSesi = [0, 0, 0, 0, 0, 0];
+            myPres.forEach(p => {
+              if (p.tanggal && p.status_kehadiran === 'Hadir') {
+                const month = new Date(p.tanggal).getMonth();
+                if (month >= 0 && month <= 5) {
+                  realisasiSesi[month]++;
+                }
+              }
+            });
+
+            if (mainChart) {
+              mainChart.data.datasets[0].data = realisasiSesi;
+              mainChart.update();
+            }
+
+            // 5. Pie chart (Presensi Siswa)
+            const myJadwalIds = myJads.map(j => j.jadwal_id);
+            let sHadir = 0, sAbsen = 0;
+            dbPresensiSiswa.value.forEach(p => {
+              if (myJadwalIds.includes(p.jadwal_id)) {
+                if (p.status_kehadiran === 'Hadir') sHadir++;
+                else sAbsen++;
+              }
+            });
+
+            if (secondaryChart && (sHadir + sAbsen) > 0) {
+              const sTotal = sHadir + sAbsen;
+              secondaryChart.data.datasets[0].data = [
+                parseFloat(((sHadir / sTotal) * 100).toFixed(1)),
+                parseFloat(((sAbsen / sTotal) * 100).toFixed(1))
+              ];
+              secondaryChart.update();
+            }
+
+            // 6. Announcements list
+            const filteredPgm = dbPengumuman.value.filter(p => p.target_role === 'Tentor' || p.target_role === 'All' || !p.target_role);
+            announcements.value = filteredPgm.map(p => ({
+              title: p.judul,
+              desc: p.konten,
+              time: p.tanggal_kirim ? new Date(p.tanggal_kirim).toLocaleDateString('id-ID') : 'Baru saja',
+              type: p.judul.includes('Penting') || p.judul.includes('Batas') ? 'danger' : 'success'
+            }));
+
+            if (announcements.value.length === 0) {
+              announcements.value = [{
+                title: "Belum Ada Pengumuman",
+                desc: "Tidak ada pengumuman untuk Tentor yang tersimpan di Google Sheets.",
+                time: "-",
+                type: "success"
+              }];
+            }
+
+          } catch (err) {
+            console.error("Gagal memproses data tentor:", err);
+          }
+        };
+
+        // Custom Jurnal & Student Presence date mapping loader
+        const loadClassSessionData = () => {
+          if (!selectedJadwalId.value) return;
+
+          // Clear previous states
+          jurnalMateri.value = '';
+          jurnalCatatan.value = '';
+          
+          studentsInClass.value.forEach(s => {
+            studentPresensiMap[s.siswa_id] = 'Hadir';
+            studentPresensiNotesMap[s.siswa_id] = '';
+          });
+
+          const matchDateStr = selectedClassDate.value; // YYYY-MM-DD
+
+          // 1. Search JurnalMengajar cache
+          const existingJurnal = dbJurnalMengajar.value.find(j => {
+            if (!j.tanggal) return false;
+            const dStr = new Date(j.tanggal).toLocaleDateString('sv-SE');
+            return j.jadwal_id === selectedJadwalId.value && dStr === matchDateStr;
+          });
+
+          if (existingJurnal) {
+            jurnalMateri.value = existingJurnal.materi_pembahasan || '';
+            jurnalCatatan.value = existingJurnal.catatan_evaluasi || '';
+          }
+
+          // 2. Search PresensiSiswa cache
+          const existingPresence = dbPresensiSiswa.value.filter(p => {
+            if (!p.tanggal) return false;
+            const dStr = new Date(p.tanggal).toLocaleDateString('sv-SE');
+            return p.jadwal_id === selectedJadwalId.value && dStr === matchDateStr;
+          });
+
+          existingPresence.forEach(p => {
+            studentPresensiMap[p.siswa_id] = p.status_kehadiran;
+            studentPresensiNotesMap[p.siswa_id] = p.keterangan || '';
+          });
+        };
+
+        // Jurnal & Student Presence bulk save
+        const saveJurnalAndPresensiSiswa = async () => {
+          if (!selectedJadwalId.value) return;
+          if (!jurnalMateri.value || jurnalMateri.value.trim() === '') {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Materi Wajib Diisi',
+              text: 'Harap masukkan materi pembahasan kelas hari ini.',
+              confirmButtonColor: '#2563eb'
+            });
+            return;
+          }
+
+          Swal.fire({
+            title: 'Menyimpan Jurnal & Presensi...',
+            text: 'Mengirimkan data kehadiran dan jurnal ke Google Sheets',
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+
+          try {
+            const matchDateStr = selectedClassDate.value;
+
+            // 1. Save JurnalMengajar
+            const existingJurnal = dbJurnalMengajar.value.find(j => {
+              if (!j.tanggal) return false;
+              const dStr = new Date(j.tanggal).toLocaleDateString('sv-SE');
+              return j.jadwal_id === selectedJadwalId.value && dStr === matchDateStr;
+            });
+
+            const jurnalPayload = {
+              jadwal_id: selectedJadwalId.value,
+              tanggal: selectedClassDate.value,
+              pegawai_id: teacherId.value,
+              materi_pembahasan: jurnalMateri.value,
+              catatan_evaluasi: jurnalCatatan.value
+            };
+
+            let jurnalAction = 'create';
+            if (existingJurnal) {
+              jurnalAction = 'update';
+              jurnalPayload.jurnal_id = existingJurnal.jurnal_id;
+            }
+
+            await window.saveDatabaseRecord('JurnalMengajar', jurnalAction, jurnalPayload);
+
+            // 2. Save PresensiSiswa rows
+            const presencePromises = studentsInClass.value.map(async (s) => {
+              const existingPres = dbPresensiSiswa.value.find(p => {
+                if (!p.tanggal) return false;
+                const dStr = new Date(p.tanggal).toLocaleDateString('sv-SE');
+                return p.jadwal_id === selectedJadwalId.value && dStr === matchDateStr && p.siswa_id === s.siswa_id;
+              });
+
+              const presPayload = {
+                jadwal_id: selectedJadwalId.value,
+                siswa_id: s.siswa_id,
+                tanggal: selectedClassDate.value,
+                status_kehadiran: studentPresensiMap[s.siswa_id] || 'Hadir',
+                keterangan: studentPresensiNotesMap[s.siswa_id] || ''
+              };
+
+              let presAction = 'create';
+              if (existingPres) {
+                presAction = 'update';
+                presPayload.presensi_siswa_id = existingPres.presensi_siswa_id;
+              }
+
+              await window.saveDatabaseRecord('PresensiSiswa', presAction, presPayload);
+            });
+
+            await Promise.all(presencePromises);
+
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil Disimpan',
+              text: 'Jurnal mengajar dan presensi siswa berhasil diperbarui.',
+              timer: 1500,
+              showConfirmButton: false
+            });
+
+            await reloadAll(); // Pull fresh database
+          } catch(err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal Menyimpan',
+              text: err.message || 'Terjadi kesalahan sistem saat menyimpan data.',
+              confirmButtonColor: '#ef4444'
+            });
+          }
+        };
+
+        const reloadAll = async () => {
+          const rawUser = sessionStorage.getItem('user');
+          if (rawUser) {
+            try {
+              const user = JSON.parse(rawUser);
+              await window.fetchRoleData(user);
+              mapDatabaseCache();
+            } catch(e) {
+              console.error(e);
+            }
+          }
+        };
+
+        // Change Credentials Settings Form Handler
+        const handleChangeCredentials = async () => {
+          if (settingsForm.newPassword !== settingsForm.confirmPassword) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Sandi Baru Tidak Cocok',
+              text: 'Konfirmasi password baru yang Anda masukkan tidak sesuai.',
+              confirmButtonColor: '#2563eb'
+            });
+            return;
+          }
+
+          isSettingsSaving.value = true;
+          try {
+            const rawUser = sessionStorage.getItem('user');
+            const currentUser = JSON.parse(rawUser);
+
+            const oldHash = await window.sha256Hash(settingsForm.oldPassword);
+            const newHash = await window.sha256Hash(settingsForm.newPassword);
+
+            const response = await fetch(window.GAS_URL, {
+              method: 'POST',
+              mode: 'cors',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({
+                action: 'change_password',
+                user_id: currentUser.user_id,
+                old_password_hash: oldHash,
+                new_password_hash: newHash,
+                new_username: settingsForm.username
+              })
+            });
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+              Swal.fire({
+                icon: 'success',
+                title: 'Akun Berhasil Diubah',
+                text: 'Username dan sandi Anda telah diperbarui. Silakan masuk kembali.',
+                confirmButtonColor: '#2563eb'
+              }).then(() => {
+                sessionStorage.clear();
+                window.location.href = './index.html';
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal Mengubah Sandi',
+                text: result.message || 'Password lama yang Anda masukkan salah.',
+                confirmButtonColor: '#ef4444'
+              });
+            }
+
+          } catch(err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: err.message || 'Gagal mengubah sandi akun.',
+              confirmButtonColor: '#ef4444'
+            });
+          } finally {
+            isSettingsSaving.value = false;
+          }
+        };
+
+        // Navigation helpers
+        const menuIcons = {
+          'data-pegawai': 'fa-address-book',
+          'presensi-pegawai': 'fa-clipboard-user',
+          'jadwal-mengajar': 'fa-calendar-week',
+          'presensi-jurnal': 'fa-square-poll-horizontal',
+          'reschedule-jadwal': 'fa-calendar-minus',
+          'pengaturan': 'fa-sliders'
+        };
+
+        const pageTitle = computed(() => {
+          if (activePage.value === 'dashboard') return 'Dashboard';
+          return activeParentLabel.value ? `${activeParentLabel.value} \u203A ${activePageLabel.value}` : activePageLabel.value;
+        });
+
+        const placeholderIcon = computed(() => {
+          return menuIcons[activePage.value] || 'fa-folder-open';
+        });
+
+        const placeholderDesc = computed(() => '');
+
+        const openSidebar = () => {
+          if (sidebarRef.value) sidebarRef.value.toggleSidebar(true);
+        };
+
+        const handleNavigate = (event) => {
+          navigateTo(event.id, event.label, event.parentLabel);
+        };
+
+        const navigateTo = (pageId, label, parentLabel = '') => {
+          activePage.value = pageId;
+          activePageLabel.value = label;
+          activeParentLabel.value = parentLabel;
+        };
+
+        const handleLogout = () => {
+          sessionStorage.clear();
+          window.location.href = './index.html';
+        };
+
+        const renderCharts = () => {
+          const mainCtx = document.getElementById('mainDashboardChart').getContext('2d');
+          const secCtx = document.getElementById('secondaryDashboardChart').getContext('2d');
+
+          mainChart = new Chart(mainCtx, {
+            type: 'line',
+            data: {
+              labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+              datasets: [
+                {
+                  label: 'Realisasi Hadir Mengajar (Sesi)',
+                  data: [0, 0, 0, 0, 0, 0],
+                  borderColor: '#3b82f6',
+                  backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                  tension: 0.3,
+                  fill: true,
+                  borderWidth: 2.5
+                },
+                {
+                  label: 'Target Kurikulum (Sesi)',
+                  data: [8, 8, 10, 10, 12, 12],
+                  borderColor: '#cbd5e1',
+                  borderDash: [5, 5],
+                  fill: false,
+                  borderWidth: 1.5
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'top', labels: { font: { family: 'Outfit', size: 12 } } } },
+              scales: {
+                y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Outfit' } } },
+                x: { grid: { display: false }, ticks: { font: { family: 'Outfit' } } }
+              }
+            }
+          });
+
+          secondaryChart = new Chart(secCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Hadir', 'Absen (Izin/Sakit/Alpa)'],
+              datasets: [{
+                data: [100, 0],
+                backgroundColor: ['#10b981', '#f59e0b'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { font: { family: 'Outfit', size: 11 } } } }
+            }
+          });
+        };
+
+        return {
+          sidebarRef,
+          userName,
+          activePage,
+          activePageLabel,
+          activeParentLabel,
+          systemDateString,
+          teacherId,
+          salaryPerSession,
+          stats,
+          announcements,
+          sidebarMenu,
+          pageTitle,
+          placeholderIcon,
+          placeholderDesc,
+          openSidebar,
+          handleNavigate,
+          navigateTo,
+          handleLogout,
+          reloadAll,
+          
+          // Mappings helper
+          getKelompokName,
+          getMapelName,
+          getSessionDetails,
+          mySchedules,
+          myPresenceLogs,
+          myProfileInfo,
+          filteredReschedules,
+          listJadwalOptions,
+          schemaRescheduleTentor,
+          
+          // Custom Presensi & Jurnal Mengajar
+          selectedJadwalId,
+          selectedClassDate,
+          jurnalMateri,
+          jurnalCatatan,
+          studentPresensiMap,
+          studentPresensiNotesMap,
+          studentsInClass,
+          loadClassSessionData,
+          saveJurnalAndPresensiSiswa,
+
+          // Settings Change Form
+          settingsForm,
+          isSettingsSaving,
+          handleChangeCredentials
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
