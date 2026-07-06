@@ -142,9 +142,15 @@ window.HeaderComponent = {
       </div>
 
       <div class="header-right" style="position: relative; display: flex; align-items: center; gap: 12px;">
-        <!-- Avatar badge next to toggle button for immediate profile context -->
-        <div class="user-avatar" style="width: 34px; height: 34px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12.5px; cursor: pointer;" @click="toggleDropdown">
-          {{ avatarInitials }}
+        <!-- Profile info badge directly visible in navbar -->
+        <div class="user-profile-badge" style="display: flex; gap: 8px; align-items: center; cursor: pointer; padding: 4px 8px; border-radius: 20px; transition: background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.03)'" onmouseout="this.style.background='transparent'" @click="toggleDropdown">
+          <div class="user-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+            {{ avatarInitials }}
+          </div>
+          <div class="user-info" style="display: flex; flex-direction: column; text-align: left; max-width: 100px; overflow: hidden;">
+            <span class="user-name" style="font-weight: 700; font-size: 12.5px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ userName }}</span>
+            <span class="user-role-tag" style="font-size: 9.5px; color: var(--text-muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ roleText }}</span>
+          </div>
         </div>
 
         <div style="position: relative;">
@@ -539,27 +545,27 @@ window.CrudManagerComponent = {
       </div>
 
       <!-- Data Table View -->
-      <div class="table-responsive-wrapper">
-        <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 900px;">
+      <div class="table-responsive-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid var(--color-border); margin-top: 12px; background: white;">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 12px; min-width: 800px;">
           <thead>
             <tr style="background-color: var(--color-bg-light); border-bottom: 1px solid var(--color-border);">
-              <th v-for="field in visibleSchema" :key="field.name" style="padding: 12px 16px; font-weight: 600; color: var(--text-main);">
+              <th v-for="field in visibleSchema" :key="field.name" style="padding: 10px 12px; font-weight: 600; color: var(--text-main); font-size: 12.5px;">
                 {{ field.label }}
               </th>
-              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-main); text-align: center; width: 120px;">
+              <th style="padding: 10px 12px; font-weight: 600; color: var(--text-main); text-align: center; width: 120px; font-size: 12.5px;">
                 Aksi
               </th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="filteredData.length === 0">
-              <td :colspan="visibleSchema.length + 1" style="padding: 32px; text-align: center; color: var(--text-muted);">
-                <i class="fa-solid fa-inbox" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+              <td :colspan="visibleSchema.length + 1" style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 12.5px;">
+                <i class="fa-solid fa-inbox" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
                 Tidak ada data ditemukan.
               </td>
             </tr>
             <tr v-for="(item, idx) in filteredData" :key="idx" style="border-bottom: 1px solid var(--color-border); transition: background 0.15s;" hover-style="background-color: var(--color-bg-light);">
-              <td v-for="field in visibleSchema" :key="field.name" style="padding: 12px 16px; color: var(--text-main); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <td v-for="field in visibleSchema" :key="field.name" style="padding: 10px 12px; color: var(--text-main); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px;">
                 <!-- Type date formatter -->
                 <span v-if="field.type === 'date' && item[field.name]">
                   {{ new Date(item[field.name]).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) }}
@@ -576,29 +582,29 @@ window.CrudManagerComponent = {
                 <span v-else>{{ item[field.name] }}</span>
               </td>
               <!-- Action Buttons -->
-              <td style="padding: 12px 16px; text-align: center;">
-                <div style="display: flex; gap: 8px; justify-content: center;">
+              <td style="padding: 10px 12px; text-align: center;">
+                <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
                   <button 
                     v-if="sheetName === 'Siswa' || sheetName === 'Pegawai'"
                     @click="openAccountSettingsModal(item)" 
-                    style="border: none; background: rgba(16, 185, 129, 0.1); color: var(--color-emerald); width: 28px; height: 28px; border-radius: 4px; cursor: pointer; transition: all 0.2s;"
+                    style="border: none; background: rgba(16, 185, 129, 0.1); color: var(--color-emerald); width: 26px; height: 26px; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
                     title="Kelola Akun Login"
                   >
-                    <i class="fa-solid fa-key"></i>
+                    <i class="fa-solid fa-key" style="font-size: 11px;"></i>
                   </button>
                   <button 
                     @click="openEditModal(item)" 
-                    style="border: none; background: rgba(59, 130, 246, 0.1); color: var(--color-blue); width: 28px; height: 28px; border-radius: 4px; cursor: pointer; transition: all 0.2s;"
+                    style="border: none; background: rgba(59, 130, 246, 0.1); color: var(--color-blue); width: 26px; height: 26px; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
                     title="Ubah"
                   >
-                    <i class="fa-solid fa-pen-to-square"></i>
+                    <i class="fa-solid fa-pen-to-square" style="font-size: 11px;"></i>
                   </button>
                   <button 
                     @click="handleDelete(item)" 
-                    style="border: none; background: rgba(239, 68, 68, 0.1); color: var(--color-rose); width: 28px; height: 28px; border-radius: 4px; cursor: pointer; transition: all 0.2s;"
+                    style="border: none; background: rgba(239, 68, 68, 0.1); color: var(--color-rose); width: 26px; height: 26px; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
                     title="Hapus"
                   >
-                    <i class="fa-solid fa-trash-can"></i>
+                    <i class="fa-solid fa-trash-can" style="font-size: 11px;"></i>
                   </button>
                 </div>
               </td>

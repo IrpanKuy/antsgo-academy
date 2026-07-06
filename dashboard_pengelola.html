@@ -116,29 +116,6 @@
             </div>
           </div>
 
-          <!-- Bottom Panel: Announcements -->
-          <div class="dashboard-row" style="grid-template-columns: 1fr;">
-            <!-- Announcements -->
-            <div class="content-card">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <i class="fa-solid fa-bullhorn"></i>
-                  Pengumuman Terbaru
-                </h3>
-                <span class="placeholder-badge">Untuk Pengelola</span>
-              </div>
-              <div class="announcement-list">
-                <div v-for="(ann, idx) in announcements" :key="idx" class="announcement-item" :class="ann.type">
-                  <div class="announce-meta">
-                    <span class="placeholder-badge" style="padding: 1px 6px; font-size: 10px;">Info</span>
-                    <span>{{ ann.time }}</span>
-                  </div>
-                  <h4 class="announce-title">{{ ann.title }}</h4>
-                  <p class="announce-desc">{{ ann.desc }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
 
         </div>
 

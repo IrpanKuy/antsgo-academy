@@ -558,6 +558,7 @@ body {
   .main-wrapper { margin-left: 0 !important; max-width: 100% !important; }
   .header-nav { padding: 0 16px; }
   .menu-toggle-btn { display: block; }
+  .user-profile-badge { display: none !important; }
   .content-body { padding: 16px !important; }
   .sidebar-backdrop {
     position: fixed;
