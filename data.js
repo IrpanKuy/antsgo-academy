@@ -260,5 +260,4 @@ window.deleteDatabaseRecord = async function (sheetName, idVal) {
 };
 
 throw new Error(result.message || "Gagal menghapus data dari Sheets.");
-  }
-};
+
