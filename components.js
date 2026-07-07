@@ -232,7 +232,7 @@ window.CrudManagerComponent = {
     schema: { type: Array, required: true },
     dataList: { type: Array, required: true }
   },
-  emits: ['refresh'],
+  emits: ['refresh', 'print-receipt'],
   setup(props, { emit }) {
     const searchQuery = Vue.ref('');
     const isModalOpen = Vue.ref(false);
@@ -451,7 +451,7 @@ window.CrudManagerComponent = {
         const payload = {
           username: accountForm.username,
           role: props.sheetName === 'Siswa' ? 'parent' : (activeItemForAccount.jabatan_id === 'JAB-001' ? 'pengelola' : 'tentor'),
-          display_name: activeItemForAccount.nama || activeItemForAccount.nama_orang_tua || 'User',
+          display_name: props.sheetName === 'Siswa' ? (activeItemForAccount.nama_orang_tua || 'User') : (activeItemForAccount.nama || 'User'),
           linked_id: activeItemForAccount[pkField.value],
           status: 'Aktif'
         };
@@ -591,6 +591,22 @@ window.CrudManagerComponent = {
                     title="Kelola Akun Login"
                   >
                     <i class="fa-solid fa-key" style="font-size: 11px;"></i>
+                  </button>
+                  <button 
+                    v-if="sheetName === 'KeuanganTrans' && item.kategori === 'SPP'"
+                    @click="$emit('print-receipt', item)" 
+                    style="border: none; background: rgba(37, 99, 235, 0.1); color: var(--color-primary); width: 26px; height: 26px; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
+                    title="Cetak Kwitansi SPP"
+                  >
+                    <i class="fa-solid fa-print" style="font-size: 11px;"></i>
+                  </button>
+                  <button 
+                    v-if="sheetName === 'PosBayar' && item.status_bayar === 'Lunas'"
+                    @click="$emit('print-receipt', item)" 
+                    style="border: none; background: rgba(37, 99, 235, 0.1); color: var(--color-primary); width: 26px; height: 26px; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
+                    title="Cetak Kwitansi SPP"
+                  >
+                    <i class="fa-solid fa-print" style="font-size: 11px;"></i>
                   </button>
                   <button 
                     @click="openEditModal(item)" 

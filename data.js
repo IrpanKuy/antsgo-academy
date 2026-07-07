@@ -4,14 +4,14 @@
 
 // URL Web App Google Apps Script hasil Deploy (Production).
 // Silakan masukkan URL Web App GAS Anda di sini.
-window.GAS_URL = "https://script.google.com/macros/s/AKfycbz_5ayvcZOw5xntHwvSH37vIonbriHccysH0bqqaWyYf22ImRzI0k3VS9zx9tn8rsGBxg/exec";
+window.GAS_URL = "https://script.google.com/macros/s/AKfycbwuGsdwh6_hJO5v5wM5KHwWAbUv7XbcJYnmmV9t14y6SS-eiAj06s8BE35nnTKBIROqBA/exec";
 
 // Skema Kolom Database Relasional (15 Tabel)
 window.SCHEMAS = {
   "Users": ["user_id", "username", "password_hash", "role", "display_name", "linked_id", "status"],
   "Siswa": ["siswa_id", "nama", "tempat_lahir", "tanggal_lahir", "asal_sekolah", "nama_orang_tua", "alamat", "parent_email", "kelompok_id"],
   "KelompokBelajar": ["kelompok_id", "nama_kelompok", "tingkat", "keterangan"],
-  "Pegawai": ["pegawai_id", "nama", "tempat_lahir", "tanggal_lahir", "alamat", "jabatan_id", "email", "gaji_per_sesi", "status"],
+  "Pegawai": ["pegawai_id", "nama", "tempat_lahir", "tanggal_lahir", "alamat", "jabatan_id", "email", "tipe_gaji", "gaji_per_sesi", "gaji_bulanan", "status"],
   "Jabatan": ["jabatan_id", "nama_jabatan", "keterangan"],
   "KonfigurasiAkademik": ["konfig_id", "tahun_ajaran", "semester", "status"],
   "Mapel": ["mapel_id", "nama_mapel", "keterangan"],
@@ -22,7 +22,10 @@ window.SCHEMAS = {
   "RescheduleJadwal": ["reschedule_id", "jadwal_id", "tanggal_original", "tanggal_baru", "jam_mulai_baru", "jam_selesai_baru", "alasan", "status", "disetujui_oleh"],
   "PosBayar": ["pos_bayar_id", "nama_pos", "nominal_tarif", "siswa_id", "status_bayar", "keterangan"],
   "KeuanganTrans": ["transaksi_id", "tanggal", "tipe", "kategori", "nominal", "metode_pembayaran", "pos_bayar_id", "pegawai_id", "keterangan"],
-  "Pengumuman": ["pengumuman_id", "judul", "konten", "target_role", "tanggal_kirim", "pembuat_id"]
+  "Pengumuman": ["pengumuman_id", "judul", "konten", "target_role", "tanggal_kirim", "pembuat_id"],
+  "Rekening": ["rekening_id", "nama_bank", "nomor_rekening", "atas_nama", "keterangan"],
+  "Materi": ["materi_id", "judul", "link_url", "mapel_id", "kelompok_id", "keterangan"],
+  "TryOut": ["tryout_id", "judul", "link_url", "tanggal_mulai", "kelompok_id", "keterangan"]
 };
 
 /**
@@ -135,11 +138,11 @@ window.fetchRoleData = async function (user) {
 
   // Tentukan daftar sheet yang diperlukan masing-masing role
   if (role === 'pengelola') {
-    sheetsToFetch = ["Siswa", "Pegawai", "KeuanganTrans", "PresensiSiswa", "Pengumuman", "KelompokBelajar", "Jabatan", "KonfigurasiAkademik", "Mapel", "Jadwal", "PresensiPegawai", "JurnalMengajar", "RescheduleJadwal", "PosBayar", "Users"];
+    sheetsToFetch = ["Siswa", "Pegawai", "KeuanganTrans", "PresensiSiswa", "Pengumuman", "KelompokBelajar", "Jabatan", "KonfigurasiAkademik", "Mapel", "Jadwal", "PresensiPegawai", "JurnalMengajar", "RescheduleJadwal", "PosBayar", "Users", "Rekening", "Materi", "TryOut"];
   } else if (role === 'tentor') {
-    sheetsToFetch = ["Pegawai", "Jadwal", "PresensiPegawai", "PresensiSiswa", "Pengumuman", "Siswa", "KelompokBelajar", "Mapel", "JurnalMengajar", "RescheduleJadwal", "Users"];
+    sheetsToFetch = ["Pegawai", "Jadwal", "PresensiPegawai", "PresensiSiswa", "Pengumuman", "Siswa", "KelompokBelajar", "Mapel", "JurnalMengajar", "RescheduleJadwal", "Users", "Materi", "TryOut"];
   } else if (role === 'parent') {
-    sheetsToFetch = ["Siswa", "PresensiSiswa", "PresensiPegawai", "PosBayar", "Pengumuman", "Jadwal", "Mapel", "KelompokBelajar", "Pegawai", "JurnalMengajar", "KeuanganTrans", "Users"];
+    sheetsToFetch = ["Siswa", "PresensiSiswa", "PresensiPegawai", "PosBayar", "Pengumuman", "Jadwal", "Mapel", "KelompokBelajar", "Pegawai", "JurnalMengajar", "KeuanganTrans", "Users", "Rekening", "Materi", "TryOut"];
   }
 
   // Bersihkan data lama di sessionStorage agar data bersih

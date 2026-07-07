@@ -12,7 +12,7 @@ var SCHEMAS = {
   "Users": ["user_id", "username", "password_hash", "role", "display_name", "linked_id", "status"],
   "Siswa": ["siswa_id", "nama", "tempat_lahir", "tanggal_lahir", "asal_sekolah", "nama_orang_tua", "alamat", "parent_email", "kelompok_id"],
   "KelompokBelajar": ["kelompok_id", "nama_kelompok", "tingkat", "keterangan"],
-  "Pegawai": ["pegawai_id", "nama", "tempat_lahir", "tanggal_lahir", "alamat", "jabatan_id", "email", "gaji_per_sesi", "status"],
+  "Pegawai": ["pegawai_id", "nama", "tempat_lahir", "tanggal_lahir", "alamat", "jabatan_id", "email", "tipe_gaji", "gaji_per_sesi", "gaji_bulanan", "status"],
   "Jabatan": ["jabatan_id", "nama_jabatan", "keterangan"],
   "KonfigurasiAkademik": ["konfig_id", "tahun_ajaran", "semester", "status"],
   "Mapel": ["mapel_id", "nama_mapel", "keterangan"],
@@ -23,7 +23,10 @@ var SCHEMAS = {
   "RescheduleJadwal": ["reschedule_id", "jadwal_id", "tanggal_original", "tanggal_baru", "jam_mulai_baru", "jam_selesai_baru", "alasan", "status", "disetujui_oleh"],
   "PosBayar": ["pos_bayar_id", "nama_pos", "nominal_tarif", "siswa_id", "status_bayar", "keterangan"],
   "KeuanganTrans": ["transaksi_id", "tanggal", "tipe", "kategori", "nominal", "metode_pembayaran", "pos_bayar_id", "pegawai_id", "keterangan"],
-  "Pengumuman": ["pengumuman_id", "judul", "konten", "target_role", "tanggal_kirim", "pembuat_id"]
+  "Pengumuman": ["pengumuman_id", "judul", "konten", "target_role", "tanggal_kirim", "pembuat_id"],
+  "Rekening": ["rekening_id", "nama_bank", "nomor_rekening", "atas_nama", "keterangan"],
+  "Materi": ["materi_id", "judul", "link_url", "mapel_id", "kelompok_id", "keterangan"],
+  "TryOut": ["tryout_id", "judul", "link_url", "tanggal_mulai", "kelompok_id", "keterangan"]
 };
 
 // Prefix kode primary key untuk penomoran otomatis
@@ -42,8 +45,12 @@ var ID_PREFIXES = {
   "RescheduleJadwal": "RSC",
   "PosBayar": "POS",
   "KeuanganTrans": "TXN",
-  "Pengumuman": "PGM"
+  "Pengumuman": "PGM",
+  "Rekening": "REK",
+  "Materi": "MAT",
+  "TryOut": "TRY"
 };
+// Prefix kode primary key untuk penomoran otomatis
 
 // =========================================================================
 // SHA-256 HASHING UTILITY
@@ -179,7 +186,7 @@ function doPost(e) {
           username: usernameVal,
           password_hash: hashSHA256(passwordVal),
           role: userRole,
-          display_name: payload.nama || payload.nama_orang_tua || "User",
+          display_name: sheetName === "Siswa" ? (payload.nama_orang_tua || "User") : (payload.nama || "User"),
           linked_id: newRecord[SCHEMAS[sheetName][0]],
           status: "Aktif"
         };
@@ -222,7 +229,7 @@ function doPost(e) {
           var userUpdatePayload = {};
           if (usernameVal) userUpdatePayload.username = usernameVal;
           if (passwordVal && passwordVal.trim() !== "") userUpdatePayload.password_hash = hashSHA256(passwordVal);
-          userUpdatePayload.display_name = payload.nama || payload.nama_orang_tua || userRecord.display_name;
+          userUpdatePayload.display_name = sheetName === "Siswa" ? (payload.nama_orang_tua || userRecord.display_name) : (payload.nama || userRecord.display_name);
           
           var userRole = "tentor";
           if (sheetName === "Siswa") {
@@ -246,7 +253,7 @@ function doPost(e) {
             username: usernameVal,
             password_hash: hashSHA256(passwordVal),
             role: userRole,
-            display_name: payload.nama || payload.nama_orang_tua || "User",
+            display_name: sheetName === "Siswa" ? (payload.nama_orang_tua || "User") : (payload.nama || "User"),
             linked_id: idVal,
             status: "Aktif"
           };
@@ -435,10 +442,10 @@ function seedDefaultData(db) {
   // 2. Seed Pegawai
   var sheetPeg = db.getSheetByName("Pegawai");
   if (sheetPeg.getDataRange().getValues().length <= 1) {
-    sheetPeg.getRange(2, 1, 3, 9).setValues([
-      ["PGW-001", "Fahmi Hidayat, M.Pd", "Jakarta", "1990-05-15", "Jl. Jenderal Sudirman No. 45, Jakarta", "JAB-002", "fahmi@example.com", 150000, "Aktif"],
-      ["PGW-002", "Budi Santoso, S.Kom", "Bandung", "1988-10-22", "Jl. Merdeka No. 12, Bandung", "JAB-001", "budi@example.com", 0, "Aktif"],
-      ["PGW-003", "Siti Rahma, S.Pd", "Surabaya", "1993-02-08", "Jl. Pemuda No. 78, Surabaya", "JAB-002", "siti@example.com", 150000, "Aktif"]
+    sheetPeg.getRange(2, 1, 3, 11).setValues([
+      ["PGW-001", "Fahmi Hidayat, M.Pd", "Jakarta", "1990-05-15", "Jl. Jenderal Sudirman No. 45, Jakarta", "JAB-002", "fahmi@example.com", "Sesi", 150000, 0, "Aktif"],
+      ["PGW-002", "Budi Santoso, S.Kom", "Bandung", "1988-10-22", "Jl. Merdeka No. 12, Bandung", "JAB-001", "budi@example.com", "Sesi", 0, 0, "Aktif"],
+      ["PGW-003", "Siti Rahma, S.Pd", "Surabaya", "1993-02-08", "Jl. Pemuda No. 78, Surabaya", "JAB-002", "siti@example.com", "Sesi", 150000, 0, "Aktif"]
     ]);
   }
 
@@ -555,6 +562,31 @@ function seedDefaultData(db) {
     sheetPgm.getRange(2, 1, 2, 6).setValues([
       ["PGM-001", "Ujian Try Out Akbar SD", "Diberitahukan kepada seluruh wali murid bahwa Try Out Akbar akan dilaksanakan tanggal 15 Juli 2026.", "Parent", "2026-07-01", "USR-001"],
       ["PGM-002", "Rapat Kurikulum Baru Bimbel", "Rapat koordinasi kurikulum baru untuk seluruh tentor ditiadakan hari ini.", "Tentor", "2026-07-02", "USR-001"]
+    ]);
+  }
+
+  // 16. Seed Rekening
+  var sheetRek = db.getSheetByName("Rekening");
+  if (sheetRek.getDataRange().getValues().length <= 1) {
+    sheetRek.getRange(2, 1, 2, 5).setValues([
+      ["REK-001", "Bank BCA", "7712345678", "Yayasan AntsGo Academy", "Rekening Utama Transfer SPP & Buku"],
+      ["REK-002", "Bank Mandiri", "1230009876543", "Yayasan AntsGo Academy", "Rekening Alternatif Transfer SPP"]
+    ]);
+  }
+
+  // 17. Seed Materi
+  var sheetMat = db.getSheetByName("Materi");
+  if (sheetMat.getDataRange().getValues().length <= 1) {
+    sheetMat.getRange(2, 1, 1, 6).setValues([
+      ["MAT-001", "Modul Belajar Aljabar Dasar Kelas 6", "https://drive.google.com/file/d/1abc123/view", "MPL-001", "KLM-001", "Buku panduan rumus matematika aljabar"]
+    ]);
+  }
+
+  // 18. Seed TryOut
+  var sheetTry = db.getSheetByName("TryOut");
+  if (sheetTry.getDataRange().getValues().length <= 1) {
+    sheetTry.getRange(2, 1, 1, 6).setValues([
+      ["TRY-001", "Uji Coba Latihan Ujian Sekolah Dasar - Mandiri", "https://forms.gle/xyz789", "2026-07-15", "KLM-001", "Ujian latihan IPA ekosistem"]
     ]);
   }
 }

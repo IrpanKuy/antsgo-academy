@@ -26,7 +26,8 @@
   
   <!-- Shared Vue Components -->
   <script src="components.js"></script>
-
+  <!-- HTML to PDF conversion tool -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     /* Custom style tweaks specifically for parent dashboard printing */
     @media print {
@@ -512,6 +513,64 @@
           </div>
         </div>
 
+        <!-- Materi Pembelajaran Link List -->
+        <div class="page-section" :class="{ active: activePage === 'materi-pembelajaran' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-file-pdf" style="color: var(--color-rose);"></i> Materi Pembelajaran (PDF / Drive)</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Berikut adalah daftar tautan modul, buku, dan materi pembelajaran PDF yang dapat diunduh.</p>
+            
+            <div v-if="myMateriLinks.length === 0" style="padding: 48px; text-align: center; color: var(--text-muted);">
+              <i class="fa-solid fa-folder-open" style="font-size: 36px; margin-bottom: 12px; color: var(--color-border);"></i>
+              <h4>Belum Ada Materi Ditambahkan</h4>
+              <p style="font-size: 13px; margin-top: 4px;">Belum ada tautan materi pembelajaran yang dibagikan untuk kelas ini.</p>
+            </div>
+
+            <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+              <div v-for="link in myMateriLinks" :key="link.materi_id" style="background: white; border: 1px solid var(--color-border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                  <span style="font-size: 11px; font-weight: 700; background-color: rgba(59, 130, 246, 0.1); color: var(--color-blue); padding: 4px 8px; border-radius: 4px; text-transform: uppercase;">
+                    {{ getMapelName(link.mapel_id) }}
+                  </span>
+                </div>
+                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-main); line-height: 1.4;">{{ link.judul }}</h4>
+                <p style="font-size: 12px; color: var(--text-muted); flex-grow: 1;">{{ link.keterangan || 'Tidak ada deskripsi tambahan.' }}</p>
+                <a :href="link.link_url" target="_blank" class="btn-flat" style="height: 34px; padding: 0 12px; justify-content: center; font-size: 12.5px; margin-top: 8px; text-decoration: none;">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Materi
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Try Out Online Link List -->
+        <div class="page-section" :class="{ active: activePage === 'try-out-online' }">
+          <div class="content-card">
+            <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-laptop-code" style="color: var(--color-primary);"></i> Try Out Online</h3>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Tautan ujian latihan tryout online berkala melalui Google Forms atau aplikasi ujian bimbel.</p>
+            
+            <div v-if="myTryOutLinks.length === 0" style="padding: 48px; text-align: center; color: var(--text-muted);">
+              <i class="fa-solid fa-laptop-code" style="font-size: 36px; margin-bottom: 12px; color: var(--color-border);"></i>
+              <h4>Belum Ada Try Out Tersedia</h4>
+              <p style="font-size: 13px; margin-top: 4px;">Belum ada tautan latihan tryout online yang dijadwalkan untuk kelas ini.</p>
+            </div>
+
+            <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+              <div v-for="link in myTryOutLinks" :key="link.tryout_id" style="background: white; border: 1px solid var(--color-border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                  <span style="font-size: 11px; font-weight: 700; background-color: rgba(16, 185, 129, 0.1); color: var(--color-emerald); padding: 4px 8px; border-radius: 4px; text-transform: uppercase;">
+                    Pelaksanaan: {{ link.tanggal_mulai ? new Date(link.tanggal_mulai).toLocaleDateString('id-ID') : '-' }}
+                  </span>
+                </div>
+                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-main); line-height: 1.4;">{{ link.judul }}</h4>
+                <p style="font-size: 12px; color: var(--text-muted); flex-grow: 1;">{{ link.keterangan || 'Tidak ada deskripsi tambahan.' }}</p>
+                <a :href="link.link_url" target="_blank" class="btn-flat btn-navy" style="height: 34px; padding: 0 12px; justify-content: center; font-size: 12.5px; margin-top: 8px; text-decoration: none;">
+                  <i class="fa-solid fa-file-signature"></i> Mulai Try Out
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Riwayat Presensi Kehadiran Siswa -->
         <div class="page-section" :class="{ active: activePage === 'presensi-kehadiran' }">
           <div class="content-card">
@@ -561,7 +620,29 @@
         <div class="page-section" :class="{ active: activePage === 'tagihan-pembayaran' }">
           <div class="content-card">
             <h3 class="card-title" style="margin-bottom: 8px;"><i class="fa-solid fa-file-invoice-dollar"></i> Tagihan Pembayaran SPP & Biaya</h3>
-            <p class="card-subtitle" style="margin-bottom: 24px;">Berikut rekapitulasi data tagihan SPP bulanan, modul/buku, serta uang pendaftaran bimbel.</p>
+            <p class="card-subtitle" style="margin-bottom: 24px;">Berikut adalah rekapitulasi data tagihan SPP bulanan, modul/buku, serta uang pendaftaran bimbel.</p>
+            
+            <!-- Rekening Pembayaran Info Box -->
+            <div style="background-color: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 8px; padding: 18px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+              <h4 style="font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-building-columns" style="color: var(--color-primary);"></i>
+                Informasi Rekening Pembayaran Transfer Resmi
+              </h4>
+              <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px;">
+                Silakan lakukan pembayaran transfer ke salah satu rekening resmi bimbel AntsGo Academy berikut, kemudian lakukan konfirmasi pembayaran ke Admin/Loket dengan menyerahkan bukti transfer.
+              </p>
+              <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <div v-for="rek in dbRekening" :key="rek.rekening_id" style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 10px 14px; min-width: 240px; display: flex; flex-direction: column; gap: 4px;">
+                  <strong style="color: var(--color-primary); font-size: 13.5px;">{{ rek.nama_bank }}</strong>
+                  <span style="font-weight: 800; font-size: 15px; color: var(--text-main); letter-spacing: 0.5px;">{{ rek.nomor_rekening }}</span>
+                  <span style="font-size: 12px; color: var(--text-muted);">a.n. <strong>{{ rek.atas_nama }}</strong></span>
+                  <span v-if="rek.keterangan" style="font-size: 10.5px; color: var(--text-muted); font-style: italic; border-top: 1px dashed var(--color-border); margin-top: 4px; padding-top: 4px;">
+                    {{ rek.keterangan }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div class="table-responsive-wrapper">
               <table style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13.5px; min-width: 800px;">
                 <thead>
@@ -706,8 +787,8 @@
         <!-- Header -->
         <div class="receipt-header">
           <div>
-            <div class="receipt-logo">
-              <i class="fa-solid fa-graduation-cap" style="color: var(--color-primary);"></i>
+            <div class="receipt-logo" style="display: flex; align-items: center; gap: 10px;">
+              <img src="logo.png" style="height: 40px; object-fit: contain;" alt="Logo AntsGo Academy" />
               <span>AntsGo Academy</span>
             </div>
             <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
@@ -839,6 +920,9 @@
         const dbJurnalMengajar = ref([]);
         const dbKeuanganTrans = ref([]);
         const dbUsers = ref([]);
+        const dbRekening = ref([]);
+        const dbMateri = ref([]);
+        const dbTryOut = ref([]);
 
         // Settings credentials changes
         const settingsForm = reactive({
@@ -871,7 +955,9 @@
             type: 'parent',
             children: [
               { label: 'Jadwal Belajar', id: 'jadwal-belajar' },
-              { label: 'Materi & Jurnal Belajar', id: 'materi-jurnal' },
+              { label: 'Jurnal Belajar', id: 'materi-jurnal' },
+              { label: 'Materi Pembelajaran (Link)', id: 'materi-pembelajaran' },
+              { label: 'Try Out Online (Link)', id: 'try-out-online' },
               { label: 'Presensi Kehadiran', id: 'presensi-kehadiran' }
             ]
           },
@@ -997,6 +1083,16 @@
             .sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
         });
 
+        const myMateriLinks = computed(() => {
+          if (!kelompokId.value) return [];
+          return dbMateri.value.filter(m => m.kelompok_id === kelompokId.value);
+        });
+
+        const myTryOutLinks = computed(() => {
+          if (!kelompokId.value) return [];
+          return dbTryOut.value.filter(t => t.kelompok_id === kelompokId.value);
+        });
+
         const myBills = computed(() => {
           return dbPosBayar.value.filter(b => b.siswa_id === studentId.value);
         });
@@ -1062,7 +1158,21 @@
         };
 
         const printReceipt = () => {
-          window.print();
+          const element = document.getElementById('print-receipt-modal');
+          const actions = element.querySelector('.modal-actions-print');
+          if (actions) actions.style.display = 'none';
+          
+          const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     'kwitansi_' + selectedReceipt.transaksi_id + '.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: [148, 210], orientation: 'portrait' } // Ukuran A5 (Nota standard)
+          };
+          
+          html2pdf().set(opt).from(element).save().then(() => {
+            if (actions) actions.style.display = 'flex';
+          });
         };
 
         // Session validation onMounted
@@ -1107,6 +1217,9 @@
           dbJurnalMengajar.value = window.getRoleData("JurnalMengajar");
           dbKeuanganTrans.value = window.getRoleData("KeuanganTrans");
           dbUsers.value = window.getRoleData("Users");
+          dbRekening.value = window.getRoleData("Rekening");
+          dbMateri.value = window.getRoleData("Materi");
+          dbTryOut.value = window.getRoleData("TryOut");
 
           loadParentDashboardData();
         };
@@ -1395,6 +1508,11 @@
           myMaterials,
           myBills,
           myPayments,
+          myMateriLinks,
+          myTryOutLinks,
+          dbRekening,
+          dbMateri,
+          dbTryOut,
           getPresenceColor,
           avatarInitials,
           terbilangString,

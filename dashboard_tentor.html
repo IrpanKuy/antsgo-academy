@@ -374,6 +374,24 @@
             @refresh="reloadAll"
           ></app-crud-manager>
         </div>
+        <div class="page-section" :class="{ active: activePage === 'materi-pembelajaran' }">
+          <app-crud-manager
+            sheet-name="Materi"
+            sheet-label="Materi Pembelajaran"
+            :schema="schemaMateri"
+            :data-list="dbMateri"
+            @refresh="reloadAll"
+          ></app-crud-manager>
+        </div>
+        <div class="page-section" :class="{ active: activePage === 'try-out-online' }">
+          <app-crud-manager
+            sheet-name="TryOut"
+            sheet-label="Try Out Online"
+            :schema="schemaTryOut"
+            :data-list="dbTryOut"
+            @refresh="reloadAll"
+          ></app-crud-manager>
+        </div>
 
         <!-- ========================================== -->
         <!-- 4. PENGATURAN (CHANGE CREDENTIALS) -->
@@ -462,6 +480,8 @@
         const dbJurnalMengajar = ref([]);
         const dbRescheduleJadwal = ref([]);
         const dbUsers = ref([]);
+        const dbMateri = ref([]);
+        const dbTryOut = ref([]);
 
         // Settings credentials changes
         const settingsForm = reactive({
@@ -505,7 +525,9 @@
             children: [
               { label: 'Jadwal Mengajar Pribadi', id: 'jadwal-mengajar' },
               { label: 'Presensi Siswa & Jurnal', id: 'presensi-jurnal' },
-              { label: 'Reschedule Jadwal', id: 'reschedule-jadwal' }
+              { label: 'Reschedule Jadwal', id: 'reschedule-jadwal' },
+              { label: 'Materi Pembelajaran', id: 'materi-pembelajaran' },
+              { label: 'Try Out Online', id: 'try-out-online' }
             ]
           }
         ];
@@ -541,7 +563,7 @@
             { label: 'Alamat Tinggal', value: me.alamat },
             { label: 'Jabatan / Peran', value: jName },
             { label: 'Email', value: me.email },
-            { label: 'Gaji Per Sesi Selesai', value: `Rp ${parseFloat(me.gaji_per_sesi).toLocaleString('id-ID')}` },
+            { label: 'Tipe & Rate Gaji', value: me.tipe_gaji === 'Bulanan' ? `Bulanan (Rp ${parseFloat(me.gaji_bulanan || 0).toLocaleString('id-ID')})` : `Per Sesi (Rp ${parseFloat(me.gaji_per_sesi || 0).toLocaleString('id-ID')})` },
             { label: 'Status Keaktifan', value: me.status }
           ];
         });
@@ -576,6 +598,31 @@
           { name: 'jam_selesai_baru', label: 'Jam Selesai Baru', type: 'time', required: true },
           { name: 'alasan', label: 'Alasan Reschedule', type: 'textarea', required: true },
           { name: 'status', label: 'Status Persetujuan', type: 'text', defaultValue: 'Diajukan', disabled: true }
+        ];
+
+        const listMapelOptions = computed(() => {
+          return dbMapel.value.map(m => ({ value: m.mapel_id, label: m.nama_mapel }));
+        });
+        const listKelompokOptions = computed(() => {
+          return dbKelompok.value.map(k => ({ value: k.kelompok_id, label: `${k.nama_kelompok} (${k.tingkat})` }));
+        });
+
+        const schemaMateri = [
+          { name: 'materi_id', label: 'ID Materi', type: 'text' },
+          { name: 'judul', label: 'Judul Materi', type: 'text', required: true },
+          { name: 'link_url', label: 'Link URL (PDF/Drive)', type: 'text', required: true },
+          { name: 'mapel_id', label: 'Mata Pelajaran', type: 'select', required: true, options: () => listMapelOptions.value },
+          { name: 'kelompok_id', label: 'Kelompok Belajar', type: 'select', required: true, options: () => listKelompokOptions.value },
+          { name: 'keterangan', label: 'Keterangan', type: 'textarea' }
+        ];
+
+        const schemaTryOut = [
+          { name: 'tryout_id', label: 'ID Try Out', type: 'text' },
+          { name: 'judul', label: 'Judul Try Out', type: 'text', required: true },
+          { name: 'link_url', label: 'Link URL Try Out', type: 'text', required: true },
+          { name: 'tanggal_mulai', label: 'Tanggal Pelaksanaan', type: 'date', required: true },
+          { name: 'kelompok_id', label: 'Kelompok Belajar', type: 'select', required: true, options: () => listKelompokOptions.value },
+          { name: 'keterangan', label: 'Keterangan', type: 'textarea' }
         ];
 
         // Session validation onMounted
@@ -620,6 +667,8 @@
           dbJurnalMengajar.value = window.getRoleData("JurnalMengajar");
           dbRescheduleJadwal.value = window.getRoleData("RescheduleJadwal");
           dbUsers.value = window.getRoleData("Users");
+          dbMateri.value = window.getRoleData("Materi");
+          dbTryOut.value = window.getRoleData("TryOut");
 
           loadTentorDashboardData();
           loadClassSessionData();
@@ -653,9 +702,11 @@
             stats[2].value = `${presenceRate}%`;
             stats[2].sub = `Kehadiran: ${totalHadir}/${totalSesi}`;
 
-            const estimasiHonor = totalHadir * salaryPerSession.value;
+            const tipe = me ? (me.tipe_gaji || 'Sesi') : 'Sesi';
+            const bulanan = me ? (parseFloat(me.gaji_bulanan) || 0) : 0;
+            const estimasiHonor = (totalHadir * salaryPerSession.value) + bulanan;
             stats[3].value = 'Rp ' + estimasiHonor.toLocaleString('id-ID');
-            stats[3].sub = 'Berdasarkan kelas hadir';
+            stats[3].sub = bulanan > 0 ? (salaryPerSession.value > 0 ? 'Gaji pokok + honor sesi' : 'Gaji bulanan tetap') : 'Berdasarkan kelas hadir';
 
             // 4. Chart Line data (Realisasi)
             const realisasiSesi = [0, 0, 0, 0, 0, 0];
@@ -1072,7 +1123,13 @@
           // Settings Change Form
           settingsForm,
           isSettingsSaving,
-          handleChangeCredentials
+          handleChangeCredentials,
+
+          // Materi and Try Out schemas / caches
+          dbMateri,
+          dbTryOut,
+          schemaMateri,
+          schemaTryOut
         };
       }
     }).mount('#app');
